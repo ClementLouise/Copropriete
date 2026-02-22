@@ -245,7 +245,7 @@ function Charges() {
   const [uploadProgress, setUploadProgress] = useState([]);
   const [label, setLabel] = useState("");
   const [montant, setMontant] = useState("");
-  const [categorie, setCategorie] = useState("Personnel");
+  const [categorie, setCategorie] = useState("Gaz");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [fichier, setFichier] = useState(null);
   const [moisSelectionne, setMoisSelectionne] = useState("2025-06");
@@ -270,7 +270,7 @@ function Charges() {
     setMetadonnees(files.map(f => ({
       nom: f.name.replace(/\.[^/.]+$/, ""),
       montant: "",
-      categorie: "Personnel",
+      categorie: "Gaz",
       date: new Date().toISOString().split("T")[0],
     })));
   };
@@ -330,7 +330,7 @@ function Charges() {
     }
 
     await supabase.from("depenses").insert({ label, montant: Number(montant), categorie, date, facture_url });
-    setLabel(""); setMontant(""); setCategorie("Personnel"); setDate(new Date().toISOString().split("T")[0]); setFichier(null);
+    setLabel(""); setMontant(""); setCategorie("Gaz"); setDate(new Date().toISOString().split("T")[0]); setFichier(null);
     setShowForm(false);
     setUploading(false);
     load();
@@ -450,7 +450,7 @@ function Charges() {
                     onChange={e => { const m = [...metadonnees]; m[i].categorie = e.target.value; setMetadonnees(m); }}
                     style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, marginTop: 6, outline: "none" }}
                   >
-                    <option>Personnel</option><option>Fluides</option><option>Maintenance</option><option>Travaux</option><option>Assurance</option><option>Autre</option>
+                    <option>Gaz</option><option>Electricité</option><option>Eau</option><option>Gardien</option><option>Syndic</option><option>Assurance</option><option>Plomberie</option><option>Menuiserie</option><option>Deratisation</option><option>Serrurerie</option><option>Porte Parking</option><option>Compteur eau</option><option>Autre</option>
                   </select>
                 </div>
               ))}
@@ -486,11 +486,18 @@ function Charges() {
           <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Libellé (ex: Gardiennage) *" style={inputStyle} />
           <input value={montant} onChange={e => setMontant(e.target.value)} placeholder="Montant en € *" type="number" style={inputStyle} />
           <select value={categorie} onChange={e => setCategorie(e.target.value)} style={{ ...inputStyle }}>
-            <option>Personnel</option>
-            <option>Fluides</option>
-            <option>Maintenance</option>
-            <option>Travaux</option>
+            <option>Gaz</option>
+            <option>Electricité</option>
+            <option>Eau</option>
+            <option>Gardien</option>
+            <option>Syndic</option>
             <option>Assurance</option>
+            <option>Plomberie</option>
+            <option>Menuiserie</option>
+            <option>Deratisation</option>
+            <option>Serrurerie</option>
+            <option>Porte Parking</option>
+            <option>Compteur eau</option>
             <option>Autre</option>
           </select>
           <input value={date} onChange={e => setDate(e.target.value)} type="date" style={inputStyle} />
