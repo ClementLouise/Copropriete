@@ -100,7 +100,7 @@ function Login({ onLogin }) {
       <div style={{ background: COLORS.surface, borderRadius: 24, padding: 32, width: "100%", maxWidth: 400 }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 36, marginBottom: 8 }}>🏢</div>
-          <h1 style={{ fontFamily: "'Georgia', serif", fontSize: 24, color: COLORS.primary, fontWeight: 700, marginBottom: 4 }}>Les Jardins de Voltaire</h1>
+          <h1 style={{ fontFamily: "'Georgia', serif", fontSize: 24, color: COLORS.primary, fontWeight: 700, marginBottom: 4 }}>Residence Inkerman</h1>
           <p style={{ color: COLORS.textMuted, fontSize: 14 }}>Espace copropriétaires</p>
         </div>
 
@@ -248,7 +248,7 @@ function Charges() {
   const [categorie, setCategorie] = useState("Gaz");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [fichier, setFichier] = useState(null);
-  const [moisSelectionne, setMoisSelectionne] = useState("2025-06");
+  const [moisSelectionne, setMoisSelectionne] = useState("2026-01");
   const [fichiersSelectionnes, setFichiersSelectionnes] = useState([]);
   const [metadonnees, setMetadonnees] = useState([]);
 
@@ -897,11 +897,19 @@ export default function App() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 2 }}>Résidence</div>
-            <div style={{ color: "white", fontFamily: "'Georgia', serif", fontSize: 18, fontWeight: 700 }}>Les Jardins de Voltaire</div>
+            <div style={{ color: "white", fontFamily: "'Georgia', serif", fontSize: 18, fontWeight: 700 }}>Residence Inkerman</div>
           </div>
-          <button onClick={logout} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 20, padding: "6px 14px", color: "white", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
-            Déconnexion
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: COLORS.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "white", fontFamily: "serif" }}>
+              {resident?.nom ? resident.nom[0].toUpperCase() : "?"}
+            </div>
+            <div>
+              <div style={{ color: "white", fontSize: 13, fontWeight: 600 }}>{resident?.nom || "Mon compte"}</div>
+              <button onClick={logout} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 11, cursor: "pointer", padding: 0 }}>
+                Déconnexion
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
