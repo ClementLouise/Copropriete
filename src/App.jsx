@@ -553,8 +553,8 @@ function Charges() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
         {[
-          { label: "Budget", value: `${budgetPeriode.toLocaleString("fr-FR")} €`, color: COLORS.textMuted },
           { label: "Réel", value: `${totalReel.toLocaleString("fr-FR")} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
+          { label: "Budget", value: `${budgetPeriode.toLocaleString("fr-FR")} €`, color: COLORS.textMuted },
           { label: "Écart", value: `${ecart > 0 ? "+" : ""}${ecart.toLocaleString("fr-FR")} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
         ].map((k) => (
           <Card key={k.label} style={{ textAlign: "center", padding: 14 }}>
