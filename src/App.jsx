@@ -565,10 +565,37 @@ function Charges() {
       </div>
 
       <Card style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 16 }}>
-          Budget vs Réel {filtreCategorie !== "Tout" ? `· ${filtreCategorie}` : ""}
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>
+          {modeVue === "mois" ? `Budget — ${moisSelectionne}` : `Budget YTD — ${annee}`}
+          {filtreCategorie !== "Tout" ? ` · ${filtreCategorie}` : ""}
         </div>
-        <BarChart data={chartData} />
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Réel</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: totalReel > budgetPeriode ? COLORS.danger : COLORS.accent, fontFamily: "serif" }}>{totalReel.toLocaleString("fr-FR")} €</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>{modeVue === "mois" ? "Budget mensuel" : `Budget ${moisEcoules} mois`}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{budgetPeriode.toLocaleString("fr-FR")} €</div>
+          </div>
+        </div>
+        {(() => {
+          const pct = budgetPeriode > 0 ? Math.min(Math.round((totalReel / budgetPeriode) * 100), 100) : 0;
+          const depasse = totalReel > budgetPeriode;
+          return (
+            <>
+              <div style={{ height: 10, borderRadius: 5, background: COLORS.border, overflow: "hidden", marginBottom: 6 }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: depasse ? COLORS.danger : COLORS.accent, borderRadius: 5 }} />
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                <span style={{ color: depasse ? COLORS.danger : COLORS.textMuted }}>
+                  {depasse ? `+${(totalReel - budgetPeriode).toLocaleString("fr-FR")} € au-dessus` : `${(budgetPeriode - totalReel).toLocaleString("fr-FR")} € restants`}
+                </span>
+                <span style={{ color: depasse ? COLORS.danger : COLORS.textMuted, fontWeight: 700 }}>{pct}%</span>
+              </div>
+            </>
+          );
+        })()}
       </Card>
 
       <Card style={{ marginBottom: 16 }}>
