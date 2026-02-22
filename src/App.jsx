@@ -166,7 +166,7 @@ function Dashboard({ setPage, user, resident }) {
   const ticketsOuverts = tickets.filter(t => t.statut !== "Résolu" && t.statut !== "Resolu").length;
   const votesEnCours = votes.filter(v => v.statut === "En cours").length;
 
-  const chartData = budgets.slice(-6).map(b => {
+  const chartData = budgets.slice(0, 6).map(b => {
     const moisLabels = { "01": "Jan", "02": "Fév", "03": "Mar", "04": "Avr", "05": "Mai", "06": "Jun", "07": "Jul", "08": "Aoû", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc" };
     const reel = depenses.filter(d => d.date?.startsWith(b.mois)).reduce((s, d) => s + Number(d.montant), 0);
     return { mois: moisLabels[b.mois?.split("-")[1]] || b.mois, budget: Number(b.montant), reel };
