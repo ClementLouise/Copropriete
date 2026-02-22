@@ -810,6 +810,7 @@ function Tickets({ user }) {
   const [titre, setTitre] = useState("");
   const [description, setDescription] = useState("");
   const [priorite, setPriorite] = useState("Moyenne");
+  const [ticketEdite, setTicketEdite] = useState(null); // { id, titre, description, priorite }
 
   const load = async () => {
     const { data } = await supabase.from("tickets").select("*").order("created_at", { ascending: false });
@@ -825,6 +826,15 @@ function Tickets({ user }) {
     setTitre(""); setDescription(""); setPriorite("Moyenne"); setShowForm(false);
     load();
   };
+
+  const modifierTicket = async () => {
+    if (!ticketEdite?.titre.trim()) return;
+    await supabase.from("tickets").update({ titre: ticketEdite.titre, description: ticketEdite.description, priorite: ticketEdite.priorite }).eq("id", ticketEdite.id);
+    setTicketEdite(null);
+    load();
+  };
+
+  const inputStyle = { width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, marginBottom: 10, boxSizing: "border-box", outline: "none" };
 
   if (loading) return <Spinner />;
 
@@ -843,28 +853,53 @@ function Tickets({ user }) {
       </div>
 
       <Card style={{ marginBottom: 16 }}>
-        {filtered.map(t => (
-          <div key={t.id} style={{ padding: "14px 0", borderBottom: `1px solid ${COLORS.border}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-              <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 600, flex: 1, paddingRight: 10 }}>{t.titre}</div>
-              <Badge label={t.statut} />
+        {filtered.map(t => {
+          const estAuteur = t.auteur_id === user.id;
+          const enEdition = ticketEdite?.id === t.id;
+
+          if (enEdition) {
+            return (
+              <div key={t.id} style={{ padding: "14px 0", borderBottom: `1px solid ${COLORS.border}` }}>
+                <div style={{ fontSize: 12, color: COLORS.accent, fontWeight: 700, marginBottom: 10 }}>Modifier le signalement</div>
+                <input value={ticketEdite.titre} onChange={e => setTicketEdite({ ...ticketEdite, titre: e.target.value })} placeholder="Titre *" style={inputStyle} />
+                <textarea value={ticketEdite.description} onChange={e => setTicketEdite({ ...ticketEdite, description: e.target.value })} placeholder="Description" rows={3} style={{ ...inputStyle, resize: "none" }} />
+                <select value={ticketEdite.priorite} onChange={e => setTicketEdite({ ...ticketEdite, priorite: e.target.value })} style={{ ...inputStyle, marginBottom: 12 }}>
+                  <option>Faible</option><option>Moyenne</option><option>Haute</option>
+                </select>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={modifierTicket} style={{ flex: 1, padding: 10, background: COLORS.primary, color: "white", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Enregistrer</button>
+                  <button onClick={() => setTicketEdite(null)} style={{ flex: 1, padding: 10, background: COLORS.bg, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, borderRadius: 10, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>Annuler</button>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div key={t.id} onClick={() => estAuteur && setTicketEdite({ id: t.id, titre: t.titre, description: t.description || "", priorite: t.priorite })} style={{ padding: "14px 0", borderBottom: `1px solid ${COLORS.border}`, cursor: estAuteur ? "pointer" : "default" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 600, flex: 1, paddingRight: 10 }}>{t.titre}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {estAuteur && <span style={{ fontSize: 12, color: COLORS.textMuted }}>✏️</span>}
+                  <Badge label={t.statut} />
+                </div>
+              </div>
+              {t.description && <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 6 }}>{t.description}</div>}
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Badge label={t.priorite} />
+                <span style={{ fontSize: 11, color: COLORS.textMuted }}>{t.created_at?.split("T")[0]}</span>
+              </div>
             </div>
-            {t.description && <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 6 }}>{t.description}</div>}
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <Badge label={t.priorite} />
-              <span style={{ fontSize: 11, color: COLORS.textMuted }}>{t.created_at?.split("T")[0]}</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {filtered.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun signalement</div>}
       </Card>
 
       {showForm && (
         <Card style={{ marginBottom: 16 }}>
           <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Nouveau signalement</div>
-          <input value={titre} onChange={e => setTitre(e.target.value)} placeholder="Titre du problème *" style={{ width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, marginBottom: 10, boxSizing: "border-box", outline: "none" }} />
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (optionnel)" rows={3} style={{ width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, marginBottom: 10, boxSizing: "border-box", outline: "none", resize: "none" }} />
-          <select value={priorite} onChange={e => setPriorite(e.target.value)} style={{ width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, marginBottom: 12, outline: "none" }}>
+          <input value={titre} onChange={e => setTitre(e.target.value)} placeholder="Titre du problème *" style={inputStyle} />
+          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (optionnel)" rows={3} style={{ ...inputStyle, resize: "none" }} />
+          <select value={priorite} onChange={e => setPriorite(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }}>
             <option>Faible</option><option>Moyenne</option><option>Haute</option>
           </select>
           <div style={{ display: "flex", gap: 10 }}>
