@@ -566,9 +566,34 @@ function Charges() {
 
       <Card style={{ marginBottom: 20 }}>
         <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 16 }}>
-          Janvier — Juin 2026 {filtreCategorie !== "Tout" ? `· ${filtreCategorie}` : ""}
+          Répartition par catégorie
         </div>
-        <BarChart data={chartData} />
+        {(() => {
+          const parCat = CATEGORIES
+            .filter(c => c !== "Tout")
+            .map(cat => ({ cat, montant: depensesFiltrees.filter(d => d.categorie === cat).reduce((s, d) => s + Number(d.montant), 0) }))
+            .filter(x => x.montant > 0)
+            .sort((a, b) => b.montant - a.montant);
+          if (parCat.length === 0) return <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucune dépense sur cette période</div>;
+          const max = parCat[0].montant;
+          return parCat.map(({ cat, montant }) => {
+            const pct = totalReel > 0 ? Math.round((montant / totalReel) * 100) : 0;
+            return (
+              <div key={cat} style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                  <span style={{ fontSize: 13, color: COLORS.text, fontWeight: 500 }}>{cat}</span>
+                  <span style={{ fontSize: 13, color: COLORS.primary, fontWeight: 700 }}>
+                    {montant.toLocaleString("fr-FR")} €&nbsp;
+                    <span style={{ fontSize: 11, color: COLORS.textMuted, fontWeight: 400 }}>({pct}%)</span>
+                  </span>
+                </div>
+                <div style={{ height: 7, borderRadius: 4, background: COLORS.border, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${(montant / max) * 100}%`, background: COLORS.accent, borderRadius: 4 }} />
+                </div>
+              </div>
+            );
+          });
+        })()}
       </Card>
 
       <Card style={{ marginBottom: 16 }}>
