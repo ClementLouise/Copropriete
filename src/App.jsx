@@ -543,7 +543,9 @@ function Charges() {
           <select value={moisSelectionne} onChange={e => setMoisSelectionne(e.target.value)} style={{ width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, outline: "none", background: COLORS.surface }}>
             {Array.from({ length: 12 }, (_, i) => {
               const m = `${annee}-${String(i + 1).padStart(2, "0")}`;
-              return <option key={m} value={m}>{m}</option>;
+              const [anneeOpt, moisOpt] = m.split("-");
+              const nomMois = { "01": "Janvier", "02": "Février", "03": "Mars", "04": "Avril", "05": "Mai", "06": "Juin", "07": "Juillet", "08": "Août", "09": "Septembre", "10": "Octobre", "11": "Novembre", "12": "Décembre" };
+              return <option key={m} value={m}>{nomMois[moisOpt]} {anneeOpt}</option>;
             })}
           </select>
         </div>
