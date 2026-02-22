@@ -15,6 +15,10 @@ const COLORS = {
   info: "#3B82F6",
 };
 
+const BUDGET_ANNUEL = 180000;
+const BUDGET_MENSUEL = BUDGET_ANNUEL / 12; // 15 000 €/mois
+const MOIS_LABELS = { "01": "Jan", "02": "Fév", "03": "Mar", "04": "Avr", "05": "Mai", "06": "Jun", "07": "Jul", "08": "Aoû", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc" };
+
 // ─── Mini Bar Chart ────────────────────────────────────────────────────
 function BarChart({ data }) {
   if (!data || data.length === 0) return <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucune donnée</div>;
@@ -138,21 +142,18 @@ function Dashboard({ setPage, user, resident }) {
   const [depenses, setDepenses] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [votes, setVotes] = useState([]);
-  const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      const [d, t, v, b] = await Promise.all([
-        supabase.from("depenses").select("*").order("date", { ascending: false }).limit(10),
+      const [d, t, v] = await Promise.all([
+        supabase.from("depenses").select("*").order("date", { ascending: false }),
         supabase.from("tickets").select("*").order("created_at", { ascending: false }),
         supabase.from("votes").select("*"),
-        supabase.from("budgets").select("*").order("mois"),
       ]);
       setDepenses(d.data || []);
       setTickets(t.data || []);
       setVotes(v.data || []);
-      setBudgets(b.data || []);
       setLoading(false);
     };
     load();
@@ -160,16 +161,23 @@ function Dashboard({ setPage, user, resident }) {
 
   if (loading) return <Spinner />;
 
-  const totalReel = depenses.filter(d => d.date?.startsWith("2025-06")).reduce((s, d) => s + Number(d.montant), 0);
-  const budget = budgets.find(b => b.mois === "2025-06")?.montant || 2400;
-  const ecart = totalReel - budget;
+  const moisCourant = new Date().toISOString().slice(0, 7);
+  const annee = moisCourant.split("-")[0];
+  const numMois = parseInt(moisCourant.split("-")[1]);
+
+  const totalMois = depenses.filter(d => d.date?.startsWith(moisCourant)).reduce((s, d) => s + Number(d.montant), 0);
+  const ecartMois = totalMois - BUDGET_MENSUEL;
+  const totalAnnee = depenses.filter(d => d.date?.startsWith(annee)).reduce((s, d) => s + Number(d.montant), 0);
+  const budgetEcoule = BUDGET_MENSUEL * numMois;
+  const pctBudget = budgetEcoule > 0 ? Math.min(Math.round((totalAnnee / budgetEcoule) * 100), 100) : 0;
+
   const ticketsOuverts = tickets.filter(t => t.statut !== "Résolu" && t.statut !== "Resolu").length;
   const votesEnCours = votes.filter(v => v.statut === "En cours").length;
 
-  const chartData = budgets.slice(0, 6).map(b => {
-    const moisLabels = { "01": "Jan", "02": "Fév", "03": "Mar", "04": "Avr", "05": "Mai", "06": "Jun", "07": "Jul", "08": "Aoû", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc" };
-    const reel = depenses.filter(d => d.date?.startsWith(b.mois)).reduce((s, d) => s + Number(d.montant), 0);
-    return { mois: moisLabels[b.mois?.split("-")[1]] || b.mois, budget: Number(b.montant), reel };
+  const moisChart = Array.from({ length: 6 }, (_, i) => `${annee}-${String(i + 1).padStart(2, "0")}`);
+  const chartData = moisChart.map(mois => {
+    const reel = depenses.filter(d => d.date?.startsWith(mois)).reduce((s, d) => s + Number(d.montant), 0);
+    return { mois: MOIS_LABELS[mois.split("-")[1]], budget: BUDGET_MENSUEL, reel };
   });
 
   return (
@@ -182,7 +190,7 @@ function Dashboard({ setPage, user, resident }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
         {[
-          { label: "Dépenses juin", value: `${totalReel} €`, sub: `${ecart > 0 ? "+" : ""}${ecart} € vs budget`, color: ecart > 0 ? COLORS.danger : COLORS.accent, action: "charges" },
+          { label: `Dépenses ${MOIS_LABELS[moisCourant.split("-")[1]]}`, value: `${totalMois.toLocaleString("fr-FR")} €`, sub: `${ecartMois > 0 ? "+" : ""}${ecartMois.toLocaleString("fr-FR")} € vs ${BUDGET_MENSUEL.toLocaleString("fr-FR")} €`, color: ecartMois > 0 ? COLORS.danger : COLORS.accent, action: "charges" },
           { label: "Tickets ouverts", value: ticketsOuverts, sub: "signalements actifs", color: COLORS.warning, action: "tickets" },
           { label: "Votes en cours", value: votesEnCours, sub: "en attente de vote", color: COLORS.info, action: "votes" },
           { label: "Documents", value: "📄", sub: "accéder aux docs", color: COLORS.primary, action: "documents" },
@@ -194,6 +202,31 @@ function Dashboard({ setPage, user, resident }) {
           </Card>
         ))}
       </div>
+
+      <Card style={{ marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Budget {annee}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Annuel</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{BUDGET_ANNUEL.toLocaleString("fr-FR")} €</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Mensuel</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.accent, fontFamily: "serif" }}>{BUDGET_MENSUEL.toLocaleString("fr-FR")} €</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 8 }}>
+          Consommé depuis janv. :{" "}
+          <strong style={{ color: totalAnnee > budgetEcoule ? COLORS.danger : COLORS.text }}>{totalAnnee.toLocaleString("fr-FR")} €</strong>
+          {" "}/ {budgetEcoule.toLocaleString("fr-FR")} € ({numMois} mois)
+        </div>
+        <div style={{ height: 8, borderRadius: 4, background: COLORS.border, overflow: "hidden", marginBottom: 4 }}>
+          <div style={{ height: "100%", width: `${pctBudget}%`, background: totalAnnee > budgetEcoule ? COLORS.danger : COLORS.accent, borderRadius: 4 }} />
+        </div>
+        <div style={{ fontSize: 11, color: totalAnnee > budgetEcoule ? COLORS.danger : COLORS.textMuted, textAlign: "right" }}>
+          {pctBudget}% du budget consommé
+        </div>
+      </Card>
 
       <Card style={{ marginBottom: 20 }}>
         <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, marginBottom: 12, fontFamily: "serif" }}>Budget vs Dépenses réelles</div>
@@ -239,7 +272,6 @@ const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "
 
 function Charges() {
   const [depenses, setDepenses] = useState([]);
-  const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showMassUpload, setShowMassUpload] = useState(false);
@@ -257,12 +289,8 @@ function Charges() {
   const [filtreCategorie, setFiltreCategorie] = useState("Tout");
 
   const load = async () => {
-    const [d, b] = await Promise.all([
-      supabase.from("depenses").select("*").order("date", { ascending: false }),
-      supabase.from("budgets").select("*").order("mois"),
-    ]);
-    setDepenses(d.data || []);
-    setBudgets(b.data || []);
+    const { data } = await supabase.from("depenses").select("*").order("date", { ascending: false });
+    setDepenses(data || []);
     setLoading(false);
   };
 
@@ -334,15 +362,13 @@ function Charges() {
     return bonMois && bonneCat;
   });
   const totalReel = depensesFiltrees.reduce((s, d) => s + Number(d.montant), 0);
-  const budgetPeriode = modeVue === "mois"
-    ? (budgets.find(b => b.mois === moisSelectionne)?.montant || 2400)
-    : budgets.filter(b => b.mois?.startsWith(annee)).reduce((s, b) => s + Number(b.montant), 0);
+  const budgetPeriode = modeVue === "mois" ? BUDGET_MENSUEL : BUDGET_ANNUEL;
   const ecart = totalReel - budgetPeriode;
 
-  const chartData = budgets.slice(0, 6).map(b => {
-    const moisLabels = { "01": "Jan", "02": "Fév", "03": "Mar", "04": "Avr", "05": "Mai", "06": "Jun", "07": "Jul", "08": "Aoû", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc" };
-    const reel = depenses.filter(d => d.date?.startsWith(b.mois) && (filtreCategorie === "Tout" || d.categorie === filtreCategorie)).reduce((s, d) => s + Number(d.montant), 0);
-    return { mois: moisLabels[b.mois?.split("-")[1]] || b.mois, budget: Number(b.montant), reel };
+  const moisChart = Array.from({ length: 6 }, (_, i) => `${annee}-${String(i + 1).padStart(2, "0")}`);
+  const chartData = moisChart.map(mois => {
+    const reel = depenses.filter(d => d.date?.startsWith(mois) && (filtreCategorie === "Tout" || d.categorie === filtreCategorie)).reduce((s, d) => s + Number(d.montant), 0);
+    return { mois: MOIS_LABELS[mois.split("-")[1]], budget: BUDGET_MENSUEL, reel };
   });
 
   const inputStyle = { width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, marginBottom: 10, boxSizing: "border-box", outline: "none" };
@@ -350,6 +376,11 @@ function Charges() {
   return (
     <div>
       <SectionTitle title="Charges & Dépenses" />
+
+      <div style={{ background: COLORS.accentLight, borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontSize: 13, color: COLORS.primary }}>Budget <strong>{annee}</strong></div>
+        <div style={{ fontSize: 13, color: COLORS.accent, fontWeight: 700 }}>{BUDGET_MENSUEL.toLocaleString("fr-FR")} €/mois · {BUDGET_ANNUEL.toLocaleString("fr-FR")} €/an</div>
+      </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         {["mois", "annee"].map(m => (
@@ -372,16 +403,19 @@ function Charges() {
       {modeVue === "mois" && (
         <div style={{ marginBottom: 16 }}>
           <select value={moisSelectionne} onChange={e => setMoisSelectionne(e.target.value)} style={{ width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, outline: "none", background: COLORS.surface }}>
-            {budgets.map(b => <option key={b.mois} value={b.mois}>{b.mois}</option>)}
+            {Array.from({ length: 12 }, (_, i) => {
+              const m = `${annee}-${String(i + 1).padStart(2, "0")}`;
+              return <option key={m} value={m}>{m}</option>;
+            })}
           </select>
         </div>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
         {[
-          { label: "Budget", value: `${budgetPeriode} €`, color: COLORS.textMuted },
-          { label: "Réel", value: `${totalReel} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
-          { label: "Écart", value: `${ecart > 0 ? "+" : ""}${ecart} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
+          { label: "Budget", value: `${budgetPeriode.toLocaleString("fr-FR")} €`, color: COLORS.textMuted },
+          { label: "Réel", value: `${totalReel.toLocaleString("fr-FR")} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
+          { label: "Écart", value: `${ecart > 0 ? "+" : ""}${ecart.toLocaleString("fr-FR")} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
         ].map((k) => (
           <Card key={k.label} style={{ textAlign: "center", padding: 14 }}>
             <div style={{ fontSize: 10, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{k.label}</div>
