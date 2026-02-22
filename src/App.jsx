@@ -577,18 +577,18 @@ function Charges() {
           if (parCat.length === 0) return <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucune dépense sur cette période</div>;
           const max = parCat[0].montant;
           return parCat.map(({ cat, montant }) => {
-            const pct = totalReel > 0 ? Math.round((montant / totalReel) * 100) : 0;
+            const pct = Math.round((montant / BUDGET_ANNUEL) * 100 * 10) / 10;
             return (
               <div key={cat} style={{ marginBottom: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
                   <span style={{ fontSize: 13, color: COLORS.text, fontWeight: 500 }}>{cat}</span>
                   <span style={{ fontSize: 13, color: COLORS.primary, fontWeight: 700 }}>
                     {montant.toLocaleString("fr-FR")} €&nbsp;
-                    <span style={{ fontSize: 11, color: COLORS.textMuted, fontWeight: 400 }}>({pct}%)</span>
+                    <span style={{ fontSize: 11, color: COLORS.textMuted, fontWeight: 400 }}>({pct}% budget)</span>
                   </span>
                 </div>
-                <div style={{ height: 7, borderRadius: 4, background: COLORS.border, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${(montant / max) * 100}%`, background: COLORS.accent, borderRadius: 4 }} />
+                <div style={{ height: 11, borderRadius: 6, background: COLORS.border, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${(montant / max) * 100}%`, background: COLORS.accent, borderRadius: 6 }} />
                 </div>
               </div>
             );
