@@ -577,8 +577,8 @@ function Charges() {
           return (
             <div
               key={d.id}
-              onClick={() => aCompleter && setDepenseACompleter(d)}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${COLORS.border}`, cursor: aCompleter ? "pointer" : d.facture_url ? "pointer" : "default", background: aCompleter ? "#fffbeb" : "transparent", margin: aCompleter ? "0 -20px" : 0, padding: aCompleter ? "12px 20px" : "12px 0" }}
+              onClick={() => (aCompleter || d.facture_url) && setDepenseACompleter(d)}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${COLORS.border}`, cursor: (aCompleter || d.facture_url) ? "pointer" : "default", background: aCompleter ? "#fffbeb" : "transparent", margin: aCompleter ? "0 -20px" : 0, padding: aCompleter ? "12px 20px" : "12px 0" }}
             >
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
