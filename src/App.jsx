@@ -235,6 +235,8 @@ function Dashboard({ setPage, user, resident }) {
 }
 
 // ─── CHARGES ───────────────────────────────────────────────────────────
+const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "Assurance", "Plomberie", "Menuiserie", "Deratisation", "Serrurerie", "Porte Parking", "Compteur eau", "Autre"];
+
 function Charges() {
   const [depenses, setDepenses] = useState([]);
   const [budgets, setBudgets] = useState([]);
@@ -251,6 +253,8 @@ function Charges() {
   const [moisSelectionne, setMoisSelectionne] = useState("2026-01");
   const [fichiersSelectionnes, setFichiersSelectionnes] = useState([]);
   const [metadonnees, setMetadonnees] = useState([]);
+  const [modeVue, setModeVue] = useState("mois");
+  const [filtreCategorie, setFiltreCategorie] = useState("Tout");
 
   const load = async () => {
     const [d, b] = await Promise.all([
@@ -280,35 +284,24 @@ function Charges() {
     setUploading(true);
     const progress = fichiersSelectionnes.map(f => ({ nom: f.name, statut: "En attente" }));
     setUploadProgress([...progress]);
-
     for (let i = 0; i < fichiersSelectionnes.length; i++) {
-      const fichier = fichiersSelectionnes[i];
+      const fich = fichiersSelectionnes[i];
       const meta = metadonnees[i];
       progress[i].statut = "Upload...";
       setUploadProgress([...progress]);
-
       try {
-        const nomFichier = `${Date.now()}_${fichier.name}`;
-        const { error: uploadError } = await supabase.storage.from("factures").upload(nomFichier, fichier);
+        const nomFichier = `${Date.now()}_${fich.name}`;
+        const { error: uploadError } = await supabase.storage.from("factures").upload(nomFichier, fich);
         let facture_url = null;
         if (!uploadError) {
           const { data: urlData } = supabase.storage.from("factures").getPublicUrl(nomFichier);
           facture_url = urlData.publicUrl;
         }
-        await supabase.from("depenses").insert({
-          label: meta.nom,
-          montant: Number(meta.montant) || 0,
-          categorie: meta.categorie,
-          date: meta.date,
-          facture_url,
-        });
+        await supabase.from("depenses").insert({ label: meta.nom, montant: Number(meta.montant) || 0, categorie: meta.categorie, date: meta.date, facture_url });
         progress[i].statut = "✅ OK";
-      } catch {
-        progress[i].statut = "❌ Erreur";
-      }
+      } catch { progress[i].statut = "❌ Erreur"; }
       setUploadProgress([...progress]);
     }
-
     setUploading(false);
     setFichiersSelectionnes([]);
     setMetadonnees([]);
@@ -319,33 +312,36 @@ function Charges() {
     if (!label.trim() || !montant) return;
     setUploading(true);
     let facture_url = null;
-
     if (fichier) {
       const nomFichier = `${Date.now()}_${fichier.name}`;
-      const { data: uploadData, error } = await supabase.storage.from("factures").upload(nomFichier, fichier);
+      const { error } = await supabase.storage.from("factures").upload(nomFichier, fichier);
       if (!error) {
         const { data: urlData } = supabase.storage.from("factures").getPublicUrl(nomFichier);
         facture_url = urlData.publicUrl;
       }
     }
-
     await supabase.from("depenses").insert({ label, montant: Number(montant), categorie, date, facture_url });
     setLabel(""); setMontant(""); setCategorie("Gaz"); setDate(new Date().toISOString().split("T")[0]); setFichier(null);
-    setShowForm(false);
-    setUploading(false);
-    load();
+    setShowForm(false); setUploading(false); load();
   };
 
   if (loading) return <Spinner />;
 
-  const depensesMois = depenses.filter(d => d.date?.startsWith(moisSelectionne));
-  const totalReel = depensesMois.reduce((s, d) => s + Number(d.montant), 0);
-  const budget = budgets.find(b => b.mois === moisSelectionne)?.montant || 2400;
-  const ecart = totalReel - budget;
+  const annee = moisSelectionne.split("-")[0];
+  const depensesFiltrees = depenses.filter(d => {
+    const bonMois = modeVue === "mois" ? d.date?.startsWith(moisSelectionne) : d.date?.startsWith(annee);
+    const bonneCat = filtreCategorie === "Tout" || d.categorie === filtreCategorie;
+    return bonMois && bonneCat;
+  });
+  const totalReel = depensesFiltrees.reduce((s, d) => s + Number(d.montant), 0);
+  const budgetPeriode = modeVue === "mois"
+    ? (budgets.find(b => b.mois === moisSelectionne)?.montant || 2400)
+    : budgets.filter(b => b.mois?.startsWith(annee)).reduce((s, b) => s + Number(b.montant), 0);
+  const ecart = totalReel - budgetPeriode;
 
-  const chartData = budgets.slice(-6).map(b => {
+  const chartData = budgets.slice(0, 6).map(b => {
     const moisLabels = { "01": "Jan", "02": "Fév", "03": "Mar", "04": "Avr", "05": "Mai", "06": "Jun", "07": "Jul", "08": "Aoû", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc" };
-    const reel = depenses.filter(d => d.date?.startsWith(b.mois)).reduce((s, d) => s + Number(d.montant), 0);
+    const reel = depenses.filter(d => d.date?.startsWith(b.mois) && (filtreCategorie === "Tout" || d.categorie === filtreCategorie)).reduce((s, d) => s + Number(d.montant), 0);
     return { mois: moisLabels[b.mois?.split("-")[1]] || b.mois, budget: Number(b.montant), reel };
   });
 
@@ -355,10 +351,35 @@ function Charges() {
     <div>
       <SectionTitle title="Charges & Dépenses" />
 
-      {/* KPIs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        {["mois", "annee"].map(m => (
+          <button key={m} onClick={() => setModeVue(m)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${modeVue === m ? COLORS.accent : COLORS.border}`, background: modeVue === m ? COLORS.accentLight : COLORS.surface, color: modeVue === m ? COLORS.accent : COLORS.textMuted, fontWeight: modeVue === m ? 700 : 400, fontSize: 13, cursor: "pointer" }}>
+            {m === "mois" ? "📅 Par mois" : "📆 Depuis janvier"}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ overflowX: "auto", marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 8, width: "max-content" }}>
+          {CATEGORIES.map(c => (
+            <button key={c} onClick={() => setFiltreCategorie(c)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${filtreCategorie === c ? COLORS.accent : COLORS.border}`, background: filtreCategorie === c ? COLORS.accentLight : COLORS.surface, color: filtreCategorie === c ? COLORS.accent : COLORS.textMuted, fontWeight: filtreCategorie === c ? 700 : 400, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {modeVue === "mois" && (
+        <div style={{ marginBottom: 16 }}>
+          <select value={moisSelectionne} onChange={e => setMoisSelectionne(e.target.value)} style={{ width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, outline: "none", background: COLORS.surface }}>
+            {budgets.map(b => <option key={b.mois} value={b.mois}>{b.mois}</option>)}
+          </select>
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
         {[
-          { label: "Budget", value: `${budget} €`, color: COLORS.textMuted },
+          { label: "Budget", value: `${budgetPeriode} €`, color: COLORS.textMuted },
           { label: "Réel", value: `${totalReel} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
           { label: "Écart", value: `${ecart > 0 ? "+" : ""}${ecart} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
         ].map((k) => (
@@ -369,46 +390,36 @@ function Charges() {
         ))}
       </div>
 
-      {/* Graphique */}
       <Card style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 16 }}>6 derniers mois</div>
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 16 }}>
+          Janvier — Juin 2026 {filtreCategorie !== "Tout" ? `· ${filtreCategorie}` : ""}
+        </div>
         <BarChart data={chartData} />
       </Card>
 
-      {/* Sélecteur de mois */}
-      <div style={{ marginBottom: 12 }}>
-        <select value={moisSelectionne} onChange={e => setMoisSelectionne(e.target.value)} style={{ width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, outline: "none", background: COLORS.surface }}>
-          {budgets.map(b => <option key={b.mois} value={b.mois}>{b.mois}</option>)}
-        </select>
-      </div>
-
-      {/* Liste dépenses */}
       <Card style={{ marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 16 }}>Dépenses — {moisSelectionne}</div>
-        {depensesMois.map((d) => (
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 16 }}>
+          {modeVue === "mois" ? `Dépenses — ${moisSelectionne}` : `Dépenses — ${annee}`}
+          {filtreCategorie !== "Tout" ? ` · ${filtreCategorie}` : ""}
+        </div>
+        {depensesFiltrees.map((d) => (
           <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${COLORS.border}` }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 500 }}>{d.label}</div>
               <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>{d.categorie} · {d.date}</div>
               {d.facture_url && (
-                <a href={d.facture_url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: COLORS.accent, fontWeight: 600, textDecoration: "none" }}>
-                  📎 Voir la facture
-                </a>
+                <a href={d.facture_url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: COLORS.accent, fontWeight: 600, textDecoration: "none" }}>📎 Voir la facture</a>
               )}
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.primary, fontFamily: "serif", marginLeft: 12 }}>{d.montant} €</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.primary, fontFamily: "serif", marginLeft: 12 }}>{Number(d.montant).toLocaleString()} €</div>
           </div>
         ))}
-        {depensesMois.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucune dépense ce mois</div>}
+        {depensesFiltrees.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucune dépense</div>}
       </Card>
 
-      {/* Mass Upload */}
       {showMassUpload && (
         <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>
-            📦 Import multiple factures
-          </div>
-
+          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>📦 Import multiple factures</div>
           {fichiersSelectionnes.length === 0 ? (
             <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "24px", borderRadius: 10, border: `2px dashed ${COLORS.accent}`, cursor: "pointer", background: COLORS.accentLight, textAlign: "center" }}>
               <span style={{ fontSize: 36 }}>📂</span>
@@ -418,91 +429,49 @@ function Charges() {
             </label>
           ) : (
             <div>
-              <div style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 12 }}>
-                {fichiersSelectionnes.length} fichier(s) sélectionné(s) — complète les infos :
-              </div>
+              <div style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 12 }}>{fichiersSelectionnes.length} fichier(s) — complète les infos :</div>
               {metadonnees.map((meta, i) => (
                 <div key={i} style={{ marginBottom: 12, padding: 12, background: COLORS.bg, borderRadius: 10 }}>
                   <div style={{ fontSize: 12, color: COLORS.accent, fontWeight: 600, marginBottom: 8 }}>📎 {fichiersSelectionnes[i].name}</div>
-                  <input
-                    value={meta.nom}
-                    onChange={e => { const m = [...metadonnees]; m[i].nom = e.target.value; setMetadonnees(m); }}
-                    placeholder="Libellé"
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, marginBottom: 6, boxSizing: "border-box", outline: "none" }}
-                  />
+                  <input value={meta.nom} onChange={e => { const m = [...metadonnees]; m[i].nom = e.target.value; setMetadonnees(m); }} placeholder="Libellé" style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, marginBottom: 6, boxSizing: "border-box", outline: "none" }} />
                   <div style={{ display: "flex", gap: 6 }}>
-                    <input
-                      value={meta.montant}
-                      onChange={e => { const m = [...metadonnees]; m[i].montant = e.target.value; setMetadonnees(m); }}
-                      placeholder="Montant €"
-                      type="number"
-                      style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, outline: "none" }}
-                    />
-                    <input
-                      value={meta.date}
-                      onChange={e => { const m = [...metadonnees]; m[i].date = e.target.value; setMetadonnees(m); }}
-                      type="date"
-                      style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, outline: "none" }}
-                    />
+                    <input value={meta.montant} onChange={e => { const m = [...metadonnees]; m[i].montant = e.target.value; setMetadonnees(m); }} placeholder="Montant €" type="number" style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, outline: "none" }} />
+                    <input value={meta.date} onChange={e => { const m = [...metadonnees]; m[i].date = e.target.value; setMetadonnees(m); }} type="date" style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, outline: "none" }} />
                   </div>
-                  <select
-                    value={meta.categorie}
-                    onChange={e => { const m = [...metadonnees]; m[i].categorie = e.target.value; setMetadonnees(m); }}
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, marginTop: 6, outline: "none" }}
-                  >
-                    <option>Gaz</option><option>Electricité</option><option>Eau</option><option>Gardien</option><option>Syndic</option><option>Assurance</option><option>Plomberie</option><option>Menuiserie</option><option>Deratisation</option><option>Serrurerie</option><option>Porte Parking</option><option>Compteur eau</option><option>Autre</option>
+                  <select value={meta.categorie} onChange={e => { const m = [...metadonnees]; m[i].categorie = e.target.value; setMetadonnees(m); }} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, marginTop: 6, outline: "none" }}>
+                    {CATEGORIES.filter(c => c !== "Tout").map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
               ))}
-
               {uploadProgress.length > 0 && (
                 <div style={{ marginBottom: 12 }}>
                   {uploadProgress.map((p, i) => (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", color: COLORS.textMuted }}>
-                      <span>📎 {p.nom}</span>
-                      <span>{p.statut}</span>
+                      <span>📎 {p.nom}</span><span>{p.statut}</span>
                     </div>
                   ))}
                 </div>
               )}
-
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={massUpload} disabled={uploading} style={{ flex: 1, padding: 12, background: COLORS.primary, color: "white", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer", fontSize: 13 }}>
                   {uploading ? "Upload en cours..." : `⬆️ Uploader ${fichiersSelectionnes.length} facture(s)`}
                 </button>
-                <button onClick={() => { setShowMassUpload(false); setFichiersSelectionnes([]); setMetadonnees([]); }} style={{ padding: 12, background: COLORS.bg, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>
-                  Annuler
-                </button>
+                <button onClick={() => { setShowMassUpload(false); setFichiersSelectionnes([]); setMetadonnees([]); }} style={{ padding: 12, background: COLORS.bg, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>Annuler</button>
               </div>
             </div>
           )}
         </Card>
       )}
 
-      {/* Formulaire ajout */}
       {showForm && (
         <Card style={{ marginBottom: 16 }}>
           <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Nouvelle dépense</div>
-          <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Libellé (ex: Gardiennage) *" style={inputStyle} />
+          <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Libellé *" style={inputStyle} />
           <input value={montant} onChange={e => setMontant(e.target.value)} placeholder="Montant en € *" type="number" style={inputStyle} />
           <select value={categorie} onChange={e => setCategorie(e.target.value)} style={{ ...inputStyle }}>
-            <option>Gaz</option>
-            <option>Electricité</option>
-            <option>Eau</option>
-            <option>Gardien</option>
-            <option>Syndic</option>
-            <option>Assurance</option>
-            <option>Plomberie</option>
-            <option>Menuiserie</option>
-            <option>Deratisation</option>
-            <option>Serrurerie</option>
-            <option>Porte Parking</option>
-            <option>Compteur eau</option>
-            <option>Autre</option>
+            {CATEGORIES.filter(c => c !== "Tout").map(c => <option key={c}>{c}</option>)}
           </select>
           <input value={date} onChange={e => setDate(e.target.value)} type="date" style={inputStyle} />
-
-          {/* Upload facture */}
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 6 }}>Facture (PDF ou image) — optionnel</div>
             <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px", borderRadius: 10, border: `2px dashed ${COLORS.border}`, cursor: "pointer", background: COLORS.bg }}>
@@ -511,26 +480,17 @@ function Charges() {
               <input type="file" accept=".pdf,image/*" onChange={e => setFichier(e.target.files[0])} style={{ display: "none" }} />
             </label>
           </div>
-
           <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={ajouterDepense} disabled={uploading} style={{ flex: 1, padding: 12, background: COLORS.primary, color: "white", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>
-              {uploading ? "Envoi..." : "Ajouter"}
-            </button>
-            <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 12, background: COLORS.bg, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>
-              Annuler
-            </button>
+            <button onClick={ajouterDepense} disabled={uploading} style={{ flex: 1, padding: 12, background: COLORS.primary, color: "white", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>{uploading ? "Envoi..." : "Ajouter"}</button>
+            <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 12, background: COLORS.bg, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>Annuler</button>
           </div>
         </Card>
       )}
 
       {!showForm && !showMassUpload && (
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => setShowMassUpload(true)} style={{ flex: 1, padding: 14, background: COLORS.accent, color: "white", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-            📦 Import multiple
-          </button>
-          <button onClick={() => setShowForm(true)} style={{ flex: 1, padding: 14, background: COLORS.primary, color: "white", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
-            + Ajouter
-          </button>
+          <button onClick={() => setShowMassUpload(true)} style={{ flex: 1, padding: 14, background: COLORS.accent, color: "white", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>📦 Import multiple</button>
+          <button onClick={() => setShowForm(true)} style={{ flex: 1, padding: 14, background: COLORS.primary, color: "white", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ Ajouter</button>
         </div>
       )}
     </div>
