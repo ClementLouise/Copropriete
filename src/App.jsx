@@ -267,6 +267,86 @@ function Dashboard({ setPage, user, resident }) {
   );
 }
 
+// ─── POPUP SAISIE MONTANT ──────────────────────────────────────────────
+function PopupSaisie({ depense, onSave, onClose }) {
+  const [montant, setMontant] = useState(depense.montant > 0 ? String(depense.montant) : "");
+  const [saving, setSaving] = useState(false);
+
+  const sauvegarder = async () => {
+    const val = parseFloat(montant.replace(",", "."));
+    if (!val || val <= 0) return;
+    setSaving(true);
+    await supabase.from("depenses").update({ montant: val }).eq("id", depense.id);
+    setSaving(false);
+    onSave();
+  };
+
+  const isPdf = depense.facture_url?.toLowerCase().includes(".pdf");
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: 0 }}>
+      {/* Header */}
+      <div style={{ width: "100%", maxWidth: 480, background: COLORS.primary, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <div>
+          <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>{depense.label}</div>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{depense.date} · {depense.categorie}</div>
+        </div>
+        <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", width: 32, height: 32, borderRadius: "50%", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+      </div>
+
+      {/* Visionneuse PDF / image */}
+      <div style={{ width: "100%", maxWidth: 480, flex: 1, overflow: "hidden", background: "#111", minHeight: 0 }}>
+        {depense.facture_url ? (
+          isPdf ? (
+            <iframe
+              src={depense.facture_url}
+              title="Facture"
+              style={{ width: "100%", height: "100%", border: "none", minHeight: 360 }}
+            />
+          ) : (
+            <img src={depense.facture_url} alt="Facture" style={{ width: "100%", maxHeight: 420, objectFit: "contain" }} />
+          )
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "#888", fontSize: 14 }}>
+            Aucune facture attachée
+          </div>
+        )}
+      </div>
+
+      {/* Saisie montant */}
+      <div style={{ width: "100%", maxWidth: 480, background: COLORS.surface, padding: 16, borderTop: `1px solid ${COLORS.border}`, flexShrink: 0 }}>
+        {depense.facture_url && (
+          <a href={depense.facture_url} target="_blank" rel="noreferrer" style={{ display: "block", fontSize: 12, color: COLORS.accent, marginBottom: 12, fontWeight: 600, textDecoration: "none" }}>
+            ↗ Ouvrir dans un nouvel onglet
+          </a>
+        )}
+        <div style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 8, fontWeight: 600 }}>
+          {depense.montant > 0 ? "Corriger le montant :" : "Saisir le montant total TTC :"}
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <input
+            value={montant}
+            onChange={e => setMontant(e.target.value)}
+            placeholder="Ex : 528,00"
+            type="number"
+            step="0.01"
+            autoFocus
+            style={{ flex: 1, padding: "14px 16px", borderRadius: 12, border: `2px solid ${COLORS.accent}`, fontSize: 18, fontWeight: 700, outline: "none", textAlign: "right" }}
+          />
+          <span style={{ display: "flex", alignItems: "center", fontSize: 18, fontWeight: 700, color: COLORS.primary }}>€</span>
+          <button
+            onClick={sauvegarder}
+            disabled={saving || !montant}
+            style={{ padding: "14px 20px", background: COLORS.primary, color: "white", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: "pointer", opacity: saving || !montant ? 0.5 : 1 }}
+          >
+            {saving ? "..." : "✓"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── CHARGES ───────────────────────────────────────────────────────────
 const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "Assurance", "Plomberie", "Menuiserie", "Deratisation", "Serrurerie", "Porte Parking", "Compteur eau", "Autre"];
 
@@ -287,6 +367,7 @@ function Charges() {
   const [metadonnees, setMetadonnees] = useState([]);
   const [modeVue, setModeVue] = useState("mois");
   const [filtreCategorie, setFiltreCategorie] = useState("Tout");
+  const [depenseACompleter, setDepenseACompleter] = useState(null);
 
   const load = async () => {
     const { data } = await supabase.from("depenses").select("*").order("date", { ascending: false });
@@ -355,6 +436,7 @@ function Charges() {
 
   if (loading) return <Spinner />;
 
+  const aCompleterCount = depenses.filter(d => !d.montant || Number(d.montant) === 0).length;
   const annee = moisSelectionne.split("-")[0];
   const depensesFiltrees = depenses.filter(d => {
     const bonMois = modeVue === "mois" ? d.date?.startsWith(moisSelectionne) : d.date?.startsWith(annee);
@@ -375,7 +457,32 @@ function Charges() {
 
   return (
     <div>
+      {depenseACompleter && (
+        <PopupSaisie
+          depense={depenseACompleter}
+          onClose={() => setDepenseACompleter(null)}
+          onSave={() => { setDepenseACompleter(null); load(); }}
+        />
+      )}
+
       <SectionTitle title="Charges & Dépenses" />
+
+      {aCompleterCount > 0 && (
+        <div
+          onClick={() => {
+            const first = depenses.find(d => !d.montant || Number(d.montant) === 0);
+            if (first) setDepenseACompleter(first);
+          }}
+          style={{ background: "#fffbeb", border: `1px solid ${COLORS.warning}`, borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+        >
+          <span style={{ fontSize: 20 }}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.warning }}>{aCompleterCount} facture{aCompleterCount > 1 ? "s" : ""} sans montant</div>
+            <div style={{ fontSize: 12, color: COLORS.textMuted }}>Toucher pour saisir les montants manquants</div>
+          </div>
+          <span style={{ color: COLORS.warning, fontSize: 18 }}>›</span>
+        </div>
+      )}
 
       <div style={{ background: COLORS.accentLight, borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: 13, color: COLORS.primary }}>Budget <strong>{annee}</strong></div>
@@ -436,18 +543,34 @@ function Charges() {
           {modeVue === "mois" ? `Dépenses — ${moisSelectionne}` : `Dépenses — ${annee}`}
           {filtreCategorie !== "Tout" ? ` · ${filtreCategorie}` : ""}
         </div>
-        {depensesFiltrees.map((d) => (
-          <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${COLORS.border}` }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 500 }}>{d.label}</div>
-              <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>{d.categorie} · {d.date}</div>
-              {d.facture_url && (
-                <a href={d.facture_url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: COLORS.accent, fontWeight: 600, textDecoration: "none" }}>📎 Voir la facture</a>
-              )}
+        {depensesFiltrees.map((d) => {
+          const aCompleter = !d.montant || Number(d.montant) === 0;
+          return (
+            <div
+              key={d.id}
+              onClick={() => d.facture_url && setDepenseACompleter(d)}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${COLORS.border}`, cursor: d.facture_url ? "pointer" : "default", background: aCompleter ? "#fffbeb" : "transparent", margin: aCompleter ? "0 -20px" : 0, padding: aCompleter ? "12px 20px" : "12px 0" }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                  <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 500 }}>{d.label}</div>
+                  {aCompleter && (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: COLORS.warning + "33", color: COLORS.warning, padding: "2px 8px", borderRadius: 20 }}>À compléter</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: COLORS.textMuted }}>{d.categorie} · {d.date}</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 12 }}>
+                {aCompleter ? (
+                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.warning }}>— €</div>
+                ) : (
+                  <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{Number(d.montant).toLocaleString("fr-FR")} €</div>
+                )}
+                {d.facture_url && <span style={{ fontSize: 16, color: COLORS.textMuted }}>›</span>}
+              </div>
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.primary, fontFamily: "serif", marginLeft: 12 }}>{Number(d.montant).toLocaleString()} €</div>
-          </div>
-        ))}
+          );
+        })}
         {depensesFiltrees.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucune dépense</div>}
       </Card>
 
