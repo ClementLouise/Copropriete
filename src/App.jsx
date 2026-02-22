@@ -267,16 +267,31 @@ function Dashboard({ setPage, user, resident }) {
   );
 }
 
-// ─── POPUP SAISIE MONTANT ──────────────────────────────────────────────
+// ─── HELPER : label ressemble à un nom de fichier ? ───────────────────
+function nomEstFichier(label) {
+  if (!label) return false;
+  const s = label.trim();
+  // Ex : P.915349.1, P.916624, ou purement numérique ≥ 5 chiffres
+  return /^P\.\d+(\.\d+)*$/.test(s) || /^\d{5,}$/.test(s);
+}
+
+// ─── POPUP SAISIE (montant + nom fournisseur) ──────────────────────────
 function PopupSaisie({ depense, onSave, onClose }) {
+  const labelManquant = nomEstFichier(depense.label);
   const [montant, setMontant] = useState(depense.montant > 0 ? String(depense.montant) : "");
+  const [label, setLabel] = useState(labelManquant ? "" : depense.label);
   const [saving, setSaving] = useState(false);
 
+  const montantVal = parseFloat(montant.replace(",", "."));
+  const peutSauver = (montantVal > 0) || (labelManquant && label.trim().length > 0);
+
   const sauvegarder = async () => {
-    const val = parseFloat(montant.replace(",", "."));
-    if (!val || val <= 0) return;
+    if (!peutSauver) return;
     setSaving(true);
-    await supabase.from("depenses").update({ montant: val }).eq("id", depense.id);
+    const updates = {};
+    if (montantVal > 0) updates.montant = montantVal;
+    if (labelManquant && label.trim()) updates.label = label.trim();
+    await supabase.from("depenses").update(updates).eq("id", depense.id);
     setSaving(false);
     onSave();
   };
@@ -298,11 +313,7 @@ function PopupSaisie({ depense, onSave, onClose }) {
       <div style={{ width: "100%", maxWidth: 480, flex: 1, overflow: "hidden", background: "#111", minHeight: 0 }}>
         {depense.facture_url ? (
           isPdf ? (
-            <iframe
-              src={depense.facture_url}
-              title="Facture"
-              style={{ width: "100%", height: "100%", border: "none", minHeight: 360 }}
-            />
+            <iframe src={depense.facture_url} title="Facture" style={{ width: "100%", height: "100%", border: "none", minHeight: 360 }} />
           ) : (
             <img src={depense.facture_url} alt="Facture" style={{ width: "100%", maxHeight: 420, objectFit: "contain" }} />
           )
@@ -313,13 +324,29 @@ function PopupSaisie({ depense, onSave, onClose }) {
         )}
       </div>
 
-      {/* Saisie montant */}
+      {/* Saisie */}
       <div style={{ width: "100%", maxWidth: 480, background: COLORS.surface, padding: 16, borderTop: `1px solid ${COLORS.border}`, flexShrink: 0 }}>
         {depense.facture_url && (
           <a href={depense.facture_url} target="_blank" rel="noreferrer" style={{ display: "block", fontSize: 12, color: COLORS.accent, marginBottom: 12, fontWeight: 600, textDecoration: "none" }}>
             ↗ Ouvrir dans un nouvel onglet
           </a>
         )}
+
+        {/* Champ nom fournisseur (si label = nom de fichier) */}
+        {labelManquant && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 6, fontWeight: 600 }}>Nom du fournisseur :</div>
+            <input
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              placeholder="Ex : EDF, Albasini, URSSAF…"
+              autoFocus
+              style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: `2px solid ${COLORS.warning}`, fontSize: 15, fontWeight: 600, outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+        )}
+
+        {/* Champ montant */}
         <div style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 8, fontWeight: 600 }}>
           {depense.montant > 0 ? "Corriger le montant :" : "Saisir le montant total TTC :"}
         </div>
@@ -330,14 +357,14 @@ function PopupSaisie({ depense, onSave, onClose }) {
             placeholder="Ex : 528,00"
             type="number"
             step="0.01"
-            autoFocus
+            autoFocus={!labelManquant}
             style={{ flex: 1, padding: "14px 16px", borderRadius: 12, border: `2px solid ${COLORS.accent}`, fontSize: 18, fontWeight: 700, outline: "none", textAlign: "right" }}
           />
           <span style={{ display: "flex", alignItems: "center", fontSize: 18, fontWeight: 700, color: COLORS.primary }}>€</span>
           <button
             onClick={sauvegarder}
-            disabled={saving || !montant}
-            style={{ padding: "14px 20px", background: COLORS.primary, color: "white", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: "pointer", opacity: saving || !montant ? 0.5 : 1 }}
+            disabled={saving || !peutSauver}
+            style={{ padding: "14px 20px", background: COLORS.primary, color: "white", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: "pointer", opacity: saving || !peutSauver ? 0.5 : 1 }}
           >
             {saving ? "..." : "✓"}
           </button>
@@ -436,7 +463,7 @@ function Charges() {
 
   if (loading) return <Spinner />;
 
-  const aCompleterCount = depenses.filter(d => !d.montant || Number(d.montant) === 0).length;
+  const aCompleterCount = depenses.filter(d => (!d.montant || Number(d.montant) === 0) || nomEstFichier(d.label)).length;
   const annee = moisSelectionne.split("-")[0];
   const depensesFiltrees = depenses.filter(d => {
     const bonMois = modeVue === "mois" ? d.date?.startsWith(moisSelectionne) : d.date?.startsWith(annee);
@@ -470,15 +497,15 @@ function Charges() {
       {aCompleterCount > 0 && (
         <div
           onClick={() => {
-            const first = depenses.find(d => !d.montant || Number(d.montant) === 0);
+            const first = depenses.find(d => (!d.montant || Number(d.montant) === 0) || nomEstFichier(d.label));
             if (first) setDepenseACompleter(first);
           }}
           style={{ background: "#fffbeb", border: `1px solid ${COLORS.warning}`, borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
         >
           <span style={{ fontSize: 20 }}>⚠️</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.warning }}>{aCompleterCount} facture{aCompleterCount > 1 ? "s" : ""} sans montant</div>
-            <div style={{ fontSize: 12, color: COLORS.textMuted }}>Toucher pour saisir les montants manquants</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.warning }}>{aCompleterCount} facture{aCompleterCount > 1 ? "s" : ""} à compléter</div>
+            <div style={{ fontSize: 12, color: COLORS.textMuted }}>Toucher pour saisir les informations manquantes</div>
           </div>
           <span style={{ color: COLORS.warning, fontSize: 18 }}>›</span>
         </div>
@@ -544,29 +571,37 @@ function Charges() {
           {filtreCategorie !== "Tout" ? ` · ${filtreCategorie}` : ""}
         </div>
         {depensesFiltrees.map((d) => {
-          const aCompleter = !d.montant || Number(d.montant) === 0;
+          const montantManquant = !d.montant || Number(d.montant) === 0;
+          const labelManquant = nomEstFichier(d.label);
+          const aCompleter = montantManquant || labelManquant;
           return (
             <div
               key={d.id}
-              onClick={() => d.facture_url && setDepenseACompleter(d)}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${COLORS.border}`, cursor: d.facture_url ? "pointer" : "default", background: aCompleter ? "#fffbeb" : "transparent", margin: aCompleter ? "0 -20px" : 0, padding: aCompleter ? "12px 20px" : "12px 0" }}
+              onClick={() => aCompleter && setDepenseACompleter(d)}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${COLORS.border}`, cursor: aCompleter ? "pointer" : d.facture_url ? "pointer" : "default", background: aCompleter ? "#fffbeb" : "transparent", margin: aCompleter ? "0 -20px" : 0, padding: aCompleter ? "12px 20px" : "12px 0" }}
             >
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
                   <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 500 }}>{d.label}</div>
-                  {aCompleter && (
+                  {labelManquant && (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: COLORS.warning + "33", color: COLORS.warning, padding: "2px 8px", borderRadius: 20 }}>Nom ?</span>
+                  )}
+                  {montantManquant && !labelManquant && (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: COLORS.warning + "33", color: COLORS.warning, padding: "2px 8px", borderRadius: 20 }}>Montant ?</span>
+                  )}
+                  {montantManquant && labelManquant && (
                     <span style={{ fontSize: 10, fontWeight: 700, background: COLORS.warning + "33", color: COLORS.warning, padding: "2px 8px", borderRadius: 20 }}>À compléter</span>
                   )}
                 </div>
                 <div style={{ fontSize: 11, color: COLORS.textMuted }}>{d.categorie} · {d.date}</div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 12 }}>
-                {aCompleter ? (
+                {montantManquant ? (
                   <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.warning }}>— €</div>
                 ) : (
                   <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{Number(d.montant).toLocaleString("fr-FR")} €</div>
                 )}
-                {d.facture_url && <span style={{ fontSize: 16, color: COLORS.textMuted }}>›</span>}
+                {(aCompleter || d.facture_url) && <span style={{ fontSize: 16, color: COLORS.textMuted }}>›</span>}
               </div>
             </div>
           );
