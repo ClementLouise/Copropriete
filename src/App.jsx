@@ -465,13 +465,17 @@ function Charges() {
 
   const aCompleterCount = depenses.filter(d => (!d.montant || Number(d.montant) === 0) || nomEstFichier(d.label)).length;
   const annee = moisSelectionne.split("-")[0];
+  const aujourd_hui = new Date().toISOString().split("T")[0];
   const depensesFiltrees = depenses.filter(d => {
-    const bonMois = modeVue === "mois" ? d.date?.startsWith(moisSelectionne) : d.date?.startsWith(annee);
+    const bonMois = modeVue === "mois"
+      ? d.date?.startsWith(moisSelectionne)
+      : d.date?.startsWith(annee) && d.date <= aujourd_hui;
     const bonneCat = filtreCategorie === "Tout" || d.categorie === filtreCategorie;
     return bonMois && bonneCat;
   });
   const totalReel = depensesFiltrees.reduce((s, d) => s + Number(d.montant), 0);
-  const budgetPeriode = modeVue === "mois" ? BUDGET_MENSUEL : BUDGET_ANNUEL;
+  const moisEcoules = new Date().getMonth() + 1; // 1 = jan, 2 = fev, etc.
+  const budgetPeriode = modeVue === "mois" ? BUDGET_MENSUEL : BUDGET_MENSUEL * moisEcoules;
   const ecart = totalReel - budgetPeriode;
 
   const moisChart = Array.from({ length: 6 }, (_, i) => `${annee}-${String(i + 1).padStart(2, "0")}`);
