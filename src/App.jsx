@@ -1337,23 +1337,17 @@ function Fournisseurs() {
       <div>
         <button onClick={() => setSelectedCat(null)} style={{ background: "none", border: "none", color: COLORS.accent, fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 16 }}>← Catégories</button>
         <SectionTitle title={selectedCat} />
-        <Card>
-          {liste.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun fournisseur</div>}
+        {liste.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun fournisseur</div>}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           {liste.map(f => (
-            <div key={f.id} onClick={() => { setSelectedF(f); setEditTel(f.telephone || ""); setEditEmail(f.email || ""); setEditNotes(f.notes || ""); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: `1px solid ${COLORS.border}`, cursor: "pointer" }}>
-              <div>
-                <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 600 }}>{f.nom}</div>
-                {(f.telephone || f.email) && (
-                  <div style={{ marginTop: 4 }}>
-                    {f.telephone && <div style={{ fontSize: 14, color: COLORS.text, marginBottom: 2 }}>📞 {formatTelephone(f.telephone)}</div>}
-                    {f.email && <div style={{ fontSize: 13, color: COLORS.textMuted }}>✉️ {f.email}</div>}
-                  </div>
-                )}
-              </div>
-              <span style={{ color: COLORS.textMuted, fontSize: 18 }}>›</span>
-            </div>
+            <Card key={f.id} onClick={() => { setSelectedF(f); setEditTel(f.telephone || ""); setEditEmail(f.email || ""); setEditNotes(f.notes || ""); }}>
+              <div style={{ fontSize: 14, color: COLORS.primary, fontWeight: 700, fontFamily: "'Georgia', serif", marginBottom: 6, lineHeight: 1.3 }}>{f.nom}</div>
+              {f.telephone && <div style={{ fontSize: 12, color: COLORS.text, marginBottom: 2 }}>📞 {formatTelephone(f.telephone)}</div>}
+              {f.email && <div style={{ fontSize: 11, color: COLORS.textMuted, wordBreak: "break-all" }}>✉️ {f.email}</div>}
+              {!f.telephone && !f.email && <div style={{ fontSize: 11, color: COLORS.textMuted }}>Non renseigné</div>}
+            </Card>
           ))}
-        </Card>
+        </div>
       </div>
     );
   }
