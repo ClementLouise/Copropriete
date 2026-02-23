@@ -413,6 +413,32 @@ function devinerCategorie(label) {
   return "Autre";
 }
 
+async function extraireTextePdf(url) {
+  try {
+    const pdfjsLib = await import("pdfjs-dist");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).href;
+    const resp = await fetch(url);
+    const buffer = await resp.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    let texte = "";
+    for (let i = 1; i <= Math.min(pdf.numPages, 2); i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      texte += content.items.map(item => item.str).join(" ") + "\n";
+    }
+    return texte;
+  } catch { return ""; }
+}
+
+function extraireAvecRegex(texte) {
+  const emailMatch = texte.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+  const telMatch = texte.match(/(?:\+33|0033|0)[1-9](?:[\s.\-]?\d{2}){4}/);
+  return {
+    email: emailMatch ? emailMatch[0] : null,
+    telephone: telMatch ? telMatch[0].replace(/[\s.\-]/g, " ").trim() : null,
+  };
+}
+
 async function extraireContactsFactures(nomFournisseur) {
   const { data: factures } = await supabase
     .from("depenses")
@@ -425,47 +451,12 @@ async function extraireContactsFactures(nomFournisseur) {
 
   for (const { facture_url } of factures) {
     try {
-      const resp = await fetch(facture_url);
-      const blob = await resp.blob();
-      const isPdf = blob.type === "application/pdf" || facture_url.toLowerCase().includes(".pdf");
-      const base64 = await new Promise(res => {
-        const r = new FileReader();
-        r.onload = () => res(r.result.split(",")[1]);
-        r.readAsDataURL(blob);
-      });
-
-      const body = {
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 200,
-        messages: [{
-          role: "user",
-          content: [
-            isPdf
-              ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } }
-              : { type: "image", source: { type: "base64", media_type: blob.type || "image/jpeg", data: base64 } },
-            { type: "text", text: 'Extrais le numéro de téléphone et l\'email de ce document. Réponds UNIQUEMENT en JSON: {"telephone": "...", "email": "..."}. Si non trouvé, mets null.' }
-          ]
-        }]
-      };
-
-      const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-allow-browser": "true",
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-
-      const aiData = await aiResp.json();
-      const text = aiData.content?.[0]?.text || "";
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) {
-        const parsed = JSON.parse(match[0]);
-        if (parsed.telephone || parsed.email) return parsed;
-      }
+      const isPdf = facture_url.toLowerCase().includes(".pdf");
+      if (!isPdf) continue; // images scannées : on laisse vide
+      const texte = await extraireTextePdf(facture_url);
+      if (!texte.trim()) continue;
+      const result = extraireAvecRegex(texte);
+      if (result.telephone || result.email) return result;
     } catch { continue; }
   }
   return null;
