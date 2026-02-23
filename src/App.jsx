@@ -471,12 +471,25 @@ async function extraireContactsFactures(nomFournisseur) {
   return null;
 }
 
+async function extraireEtSauvegarder(fournisseurId, nomFournisseur) {
+  const result = await extraireContactsFactures(nomFournisseur);
+  if (result && (result.telephone || result.email)) {
+    const updates = {};
+    if (result.telephone) updates.telephone = result.telephone;
+    if (result.email) updates.email = result.email;
+    await supabase.from("fournisseurs").update(updates).eq("id", fournisseurId);
+  }
+}
+
 async function syncFournisseur(label, categorie) {
   if (!label || nomEstFichier(label)) return;
   const nom = label.trim();
-  const { data } = await supabase.from("fournisseurs").select("id").ilike("nom", nom).limit(1);
+  const { data } = await supabase.from("fournisseurs").select("id, telephone, email").ilike("nom", nom).limit(1);
   if (!data || data.length === 0) {
-    await supabase.from("fournisseurs").insert({ nom, categorie: categorie || "Autre" });
+    const { data: inserted } = await supabase.from("fournisseurs").insert({ nom, categorie: categorie || "Autre" }).select().single();
+    if (inserted) extraireEtSauvegarder(inserted.id, nom);
+  } else if (!data[0].telephone && !data[0].email) {
+    extraireEtSauvegarder(data[0].id, nom);
   }
 }
 
@@ -1218,8 +1231,13 @@ function Fournisseurs() {
         return { nom: n, categorie: cat };
       });
       if (candidats.length > 0) await supabase.from("fournisseurs").insert(candidats);
-      await load();
+      const tous = await load();
       setLoading(false);
+      // Extraction auto en arrière-plan pour ceux sans contact
+      const sansContact = tous.filter(f => !f.telephone && !f.email);
+      for (const f of sansContact) {
+        extraireEtSauvegarder(f.id, f.nom);
+      }
     };
     sync();
   }, []);
@@ -1245,23 +1263,6 @@ function Fournisseurs() {
         <Card>
           <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 20, fontFamily: "serif", marginBottom: 4 }}>{selectedF.nom}</div>
           <Badge label={selectedF.categorie} color={COLORS.primary} />
-          <button
-            onClick={async () => {
-              setExtracting(true);
-              const result = await extraireContactsFactures(selectedF.nom);
-              if (result) {
-                if (result.telephone) setEditTel(result.telephone);
-                if (result.email) setEditEmail(result.email);
-              } else {
-                alert("Aucun contact trouvé dans les factures.");
-              }
-              setExtracting(false);
-            }}
-            disabled={extracting}
-            style={{ marginTop: 16, width: "100%", padding: 12, background: COLORS.accentLight, color: COLORS.accent, border: `1px solid ${COLORS.accent}`, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: extracting ? 0.6 : 1 }}
-          >
-            {extracting ? "Analyse des factures en cours..." : "✨ Extraire depuis les factures"}
-          </button>
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
               <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Téléphone</div>
