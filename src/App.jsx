@@ -403,7 +403,7 @@ function PopupSaisie({ depense, onSave, onClose }) {
 const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "Assurance", "Plomberie", "Menuiserie", "Deratisation", "Serrurerie", "Porte Parking", "Compteur eau", "Ascenseur", "Impôts", "Autre"];
 
 const REGLES_CATEGORIE = [
-  { categorie: "Gardien", mots: ["gardien", "concierge", "bulletin de paie", "bulletin paie", "paie gardien", "salaire", "urssaf", "conges payes", "congés payés", "medecine du travail", "médecine du travail"] },
+  { categorie: "Gardien", mots: ["gardien", "concierge", "bulletin de paie", "bulletin paie", "paie gardien", "salaire", "urssaf", "conges payes", "congés payés", "medecine du travail", "médecine du travail", "formation"] },
   { categorie: "Gaz", mots: ["gaz", "grdf", "engie gaz", "primagaz", "antargaz", "butagaz"] },
   { categorie: "Electricité", mots: ["electricite", "électricité", "electrique", "électrique", "edf", "enedis", "courant", "eclairage", "éclairage"] },
   { categorie: "Eau", mots: ["eau potable", "veolia", "saur", "suez eau", "lyonnaise", "consommation eau", "facture eau", "ocea", "ocea smart building"] },
