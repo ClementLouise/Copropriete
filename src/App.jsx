@@ -430,12 +430,21 @@ async function extraireTextePdf(url) {
   } catch { return ""; }
 }
 
+function formatTelephone(raw) {
+  if (!raw) return raw;
+  let d = raw.replace(/\D/g, "");
+  if (d.startsWith("33") && d.length === 11) d = "0" + d.slice(2);
+  if (d.startsWith("0033")) d = "0" + d.slice(4);
+  if (d.length === 10) return d.replace(/(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, "$1 $2 $3 $4 $5");
+  return raw;
+}
+
 function extraireAvecRegex(texte) {
   const emailMatch = texte.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
   const telMatch = texte.match(/(?:\+33|0033|0)[1-9](?:[\s.\-]?\d{2}){4}/);
   return {
     email: emailMatch ? emailMatch[0] : null,
-    telephone: telMatch ? telMatch[0].replace(/[\s.\-]/g, " ").trim() : null,
+    telephone: telMatch ? formatTelephone(telMatch[0]) : null,
   };
 }
 
@@ -1335,8 +1344,9 @@ function Fournisseurs() {
               <div>
                 <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 600 }}>{f.nom}</div>
                 {(f.telephone || f.email) && (
-                  <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>
-                    {f.telephone && `📞 ${f.telephone}`}{f.telephone && f.email && "  "}{f.email && `✉️ ${f.email}`}
+                  <div style={{ marginTop: 4 }}>
+                    {f.telephone && <div style={{ fontSize: 14, color: COLORS.text, marginBottom: 2 }}>📞 {formatTelephone(f.telephone)}</div>}
+                    {f.email && <div style={{ fontSize: 13, color: COLORS.textMuted }}>✉️ {f.email}</div>}
                   </div>
                 )}
               </div>
@@ -1349,7 +1359,8 @@ function Fournisseurs() {
   }
 
   // ── Vue catégories ──
-  const cats = [...new Set(fournisseurs.map(f => f.categorie).filter(Boolean))].sort();
+  const CATS_EXCLUES = ["Gardien", "Impôts"];
+  const cats = [...new Set(fournisseurs.map(f => f.categorie).filter(c => c && !CATS_EXCLUES.includes(c)))].sort();
   return (
     <div>
       <SectionTitle title="Fournisseurs" />
