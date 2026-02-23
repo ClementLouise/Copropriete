@@ -1131,6 +1131,124 @@ function Votes({ user }) {
   );
 }
 
+// ─── FOURNISSEURS ───────────────────────────────────────────────────────
+function Fournisseurs() {
+  const [fournisseurs, setFournisseurs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filtreCategorie, setFiltreCategorie] = useState("Tout");
+  const [showForm, setShowForm] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [nom, setNom] = useState("");
+  const [categorie, setCategorie] = useState("Autre");
+  const [telephone, setTelephone] = useState("");
+  const [email, setEmail] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    const { data } = await supabase.from("fournisseurs").select("*").order("nom");
+    setFournisseurs(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const ajouter = async () => {
+    if (!nom.trim()) return;
+    setSaving(true);
+    await supabase.from("fournisseurs").insert({ nom: nom.trim(), categorie, telephone: telephone.trim(), email: email.trim(), notes: notes.trim() });
+    setNom(""); setCategorie("Autre"); setTelephone(""); setEmail(""); setNotes("");
+    setShowForm(false);
+    setSaving(false);
+    load();
+  };
+
+  const importer = async () => {
+    setImporting(true);
+    const { data: depenses } = await supabase.from("depenses").select("label");
+    const existants = new Set(fournisseurs.map(f => f.nom.toLowerCase()));
+    const candidats = [...new Set(
+      (depenses || [])
+        .map(d => d.label?.trim())
+        .filter(l => l && !nomEstFichier(l) && !existants.has(l.toLowerCase()))
+    )];
+    if (candidats.length > 0) {
+      await supabase.from("fournisseurs").insert(
+        candidats.map(n => ({ nom: n, categorie: devinerCategorie(n) }))
+      );
+      load();
+    }
+    setImporting(false);
+  };
+
+  if (loading) return <Spinner />;
+
+  const categories = ["Tout", ...CATEGORIES.filter(c => c !== "Tout")];
+  const filtres = [...new Set(fournisseurs.map(f => f.categorie).filter(Boolean))];
+  const filtered = fournisseurs.filter(f => filtreCategorie === "Tout" || f.categorie === filtreCategorie);
+
+  const inputStyle = { width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, marginBottom: 10, boxSizing: "border-box", outline: "none" };
+
+  return (
+    <div>
+      <SectionTitle title="Fournisseurs" />
+
+      <div style={{ overflowX: "auto", marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 8, width: "max-content" }}>
+          {["Tout", ...filtres].map(c => (
+            <button key={c} onClick={() => setFiltreCategorie(c)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${filtreCategorie === c ? COLORS.accent : COLORS.border}`, background: filtreCategorie === c ? COLORS.accentLight : COLORS.surface, color: filtreCategorie === c ? COLORS.accent : COLORS.textMuted, fontWeight: filtreCategorie === c ? 700 : 400, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Card style={{ marginBottom: 16 }}>
+        {filtered.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun fournisseur</div>}
+        {filtered.map(f => (
+          <div key={f.id} style={{ padding: "14px 0", borderBottom: `1px solid ${COLORS.border}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+              <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 600 }}>{f.nom}</div>
+              {f.categorie && <Badge label={f.categorie} color={COLORS.primary} />}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: COLORS.textMuted }}>
+              {f.telephone && <span>📞 {f.telephone}</span>}
+              {f.email && <span>✉️ {f.email}</span>}
+            </div>
+            {f.notes && <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 6, fontStyle: "italic" }}>{f.notes}</div>}
+          </div>
+        ))}
+      </Card>
+
+      {showForm && (
+        <Card style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Nouveau fournisseur</div>
+          <input value={nom} onChange={e => { const v = e.target.value; setNom(v); setCategorie(devinerCategorie(v)); }} placeholder="Nom *" style={inputStyle} autoFocus />
+          <select value={categorie} onChange={e => setCategorie(e.target.value)} style={{ ...inputStyle }}>
+            {CATEGORIES.filter(c => c !== "Tout").map(c => <option key={c}>{c}</option>)}
+          </select>
+          <input value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="Téléphone" style={inputStyle} />
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" type="email" style={inputStyle} />
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes" rows={3} style={{ ...inputStyle, resize: "none" }} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={ajouter} disabled={saving || !nom.trim()} style={{ flex: 1, padding: 12, background: COLORS.primary, color: "white", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer", opacity: saving || !nom.trim() ? 0.5 : 1 }}>{saving ? "..." : "Ajouter"}</button>
+            <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 12, background: COLORS.bg, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>Annuler</button>
+          </div>
+        </Card>
+      )}
+
+      {!showForm && (
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={importer} disabled={importing} style={{ flex: 1, padding: 14, background: COLORS.accent, color: "white", border: "none", borderRadius: 14, fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: importing ? 0.6 : 1 }}>
+            {importing ? "Import..." : "📥 Importer factures"}
+          </button>
+          <button onClick={() => setShowForm(true)} style={{ flex: 1, padding: 14, background: COLORS.primary, color: "white", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ Ajouter</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── NAV ───────────────────────────────────────────────────────────────
 const NAV = [
   { id: "dashboard", label: "Accueil", icon: "🏠" },
@@ -1140,6 +1258,7 @@ const NAV = [
   { id: "tickets", label: "Tickets", icon: "🔧" },
   { id: "messagerie", label: "Messages", icon: "💬" },
   { id: "votes", label: "Votes", icon: "🗳️" },
+  { id: "fournisseurs", label: "Fournisseurs", icon: "🏢" },
 ];
 
 // ─── APP ───────────────────────────────────────────────────────────────
@@ -1176,7 +1295,7 @@ export default function App() {
   if (authLoading) return <div style={{ minHeight: "100vh", background: COLORS.primary, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontFamily: "Georgia, serif", fontSize: 18 }}>Chargement...</div>;
   if (!session) return <Login onLogin={setSession} />;
 
-  const PAGES = { dashboard: Dashboard, charges: Charges, documents: Documents, annuaire: Annuaire, tickets: Tickets, messagerie: Messagerie, votes: Votes };
+  const PAGES = { dashboard: Dashboard, charges: Charges, documents: Documents, annuaire: Annuaire, tickets: Tickets, messagerie: Messagerie, votes: Votes, fournisseurs: Fournisseurs };
   const PageComponent = PAGES[page] || Dashboard;
 
   return (
