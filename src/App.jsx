@@ -1291,12 +1291,14 @@ function Fournisseurs() {
         <button onClick={() => setSelectedF(null)} style={{ background: "none", border: "none", color: COLORS.accent, fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 16 }}>← {selectedCat}</button>
         <Card>
           <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 20, fontFamily: "serif", marginBottom: 4 }}>{selectedF.nom}</div>
-          <Badge label={selectedF.categorie} color={COLORS.primary} />
-          {!selectedF.telephone && !selectedF.email && derniereFactureUrl && (
-            <a href={derniereFactureUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, fontSize: 13, color: COLORS.accent, fontWeight: 600, textDecoration: "none" }}>
-              ↗ Voir la dernière facture
-            </a>
-          )}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Badge label={selectedF.categorie} color={COLORS.primary} />
+            {!selectedF.telephone && !selectedF.email && derniereFactureUrl && (
+              <a href={derniereFactureUrl} target="_blank" rel="noreferrer" style={{ background: COLORS.accent + "22", color: COLORS.accent, fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, textDecoration: "none" }}>
+                ↗ Dernière facture
+              </a>
+            )}
+          </div>
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
               <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Téléphone</div>
