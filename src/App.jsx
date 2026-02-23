@@ -1119,7 +1119,6 @@ function Fournisseurs() {
   const [loading, setLoading] = useState(true);
   const [filtreCategorie, setFiltreCategorie] = useState("Tout");
   const [showForm, setShowForm] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [nom, setNom] = useState("");
   const [categorie, setCategorie] = useState("Autre");
   const [telephone, setTelephone] = useState("");
@@ -1130,10 +1129,31 @@ function Fournisseurs() {
   const load = async () => {
     const { data } = await supabase.from("fournisseurs").select("*").order("nom");
     setFournisseurs(data || []);
+    return data || [];
+  };
+
+  const syncDepenses = async () => {
+    const existants_data = await load();
+    const existants = new Set(existants_data.map(f => f.nom.toLowerCase()));
+    const { data: depenses } = await supabase.from("depenses").select("label, categorie");
+    const map = {};
+    (depenses || []).forEach(d => {
+      const label = d.label?.trim();
+      if (!label || nomEstFichier(label) || existants.has(label.toLowerCase())) return;
+      if (!map[label]) map[label] = {};
+      const cat = d.categorie || "Autre";
+      map[label][cat] = (map[label][cat] || 0) + 1;
+    });
+    const candidats = Object.entries(map).map(([n, cats]) => {
+      const cat = Object.entries(cats).sort((a, b) => b[1] - a[1])[0][0];
+      return { nom: n, categorie: cat };
+    });
+    if (candidats.length > 0) await supabase.from("fournisseurs").insert(candidats);
+    await load();
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { syncDepenses(); }, []);
 
   const ajouter = async () => {
     if (!nom.trim()) return;
@@ -1145,29 +1165,6 @@ function Fournisseurs() {
     load();
   };
 
-  const importer = async () => {
-    setImporting(true);
-    const { data: depenses } = await supabase.from("depenses").select("label, categorie");
-    const existants = new Set(fournisseurs.map(f => f.nom.toLowerCase()));
-    // Dédoublonner par label, garder la catégorie la plus fréquente
-    const map = {};
-    (depenses || []).forEach(d => {
-      const label = d.label?.trim();
-      if (!label || nomEstFichier(label) || existants.has(label.toLowerCase())) return;
-      if (!map[label]) map[label] = {};
-      const cat = d.categorie || "Autre";
-      map[label][cat] = (map[label][cat] || 0) + 1;
-    });
-    const candidats = Object.entries(map).map(([nom, cats]) => {
-      const categorie = Object.entries(cats).sort((a, b) => b[1] - a[1])[0][0];
-      return { nom, categorie };
-    });
-    if (candidats.length > 0) {
-      await supabase.from("fournisseurs").insert(candidats);
-      load();
-    }
-    setImporting(false);
-  };
 
   if (loading) return <Spinner />;
 
@@ -1226,12 +1223,7 @@ function Fournisseurs() {
       )}
 
       {!showForm && (
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={importer} disabled={importing} style={{ flex: 1, padding: 14, background: COLORS.accent, color: "white", border: "none", borderRadius: 14, fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: importing ? 0.6 : 1 }}>
-            {importing ? "Import..." : "📥 Importer factures"}
-          </button>
-          <button onClick={() => setShowForm(true)} style={{ flex: 1, padding: 14, background: COLORS.primary, color: "white", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ Ajouter</button>
-        </div>
+        <button onClick={() => setShowForm(true)} style={{ width: "100%", padding: 14, background: COLORS.primary, color: "white", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ Ajouter un fournisseur</button>
       )}
     </div>
   );
