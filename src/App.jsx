@@ -27,7 +27,7 @@ function PieChart({ data }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) return <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucune donnée</div>;
 
-  const r = 55, cx = 60, cy = 60;
+  const r = 75, cx = 80, cy = 80;
   let angle = -Math.PI / 2;
   const slices = data.map((d, i) => {
     const a = (d.value / total) * 2 * Math.PI;
@@ -42,7 +42,7 @@ function PieChart({ data }) {
 
   return (
     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 20 }}>
-      <svg width={120} height={120} style={{ flexShrink: 0 }}>
+      <svg width={160} height={160} style={{ flexShrink: 0 }}>
         {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="white" strokeWidth={2} />)}
       </svg>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -241,7 +241,7 @@ function Dashboard({ setPage, user, resident }) {
       </Card>
 
       <Card style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, marginBottom: 16, fontFamily: "serif" }}>Répartition YTD</div>
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, marginBottom: 16, fontFamily: "serif" }}>Répartition</div>
         <PieChart data={pieData} />
       </Card>
 
