@@ -400,7 +400,7 @@ function PopupSaisie({ depense, onSave, onClose }) {
 }
 
 // ─── CHARGES ───────────────────────────────────────────────────────────
-const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "Assurance", "Plomberie", "Menuiserie", "Deratisation", "Serrurerie", "Porte Parking", "Compteur eau", "Ascenseur", "Impôts", "Autre"];
+const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "Assurance", "Plomberie", "Menuiserie", "Deratisation", "Serrurerie", "Porte Parking", "Compteur eau", "Ascenseur", "Jardinage", "Impôts", "Autre"];
 
 const REGLES_CATEGORIE = [
   { categorie: "Gardien", mots: ["gardien", "concierge", "bulletin de paie", "bulletin paie", "paie gardien", "salaire", "urssaf", "conges payes", "congés payés", "medecine du travail", "médecine du travail", "formation"] },
@@ -416,6 +416,7 @@ const REGLES_CATEGORIE = [
   { categorie: "Deratisation", mots: ["deratisation", "dératisation", "nuisibles", "desinsectisation", "désinsectisation", "cafards", "rats", "souris", "punaises"] },
   { categorie: "Porte Parking", mots: ["parking", "porte parking", "portail", "barriere", "barrière", "telecommande", "télécommande", "motorisation"] },
   { categorie: "Ascenseur", mots: ["ascenseur", "otis", "schindler", "kone", "thyssenkrupp", "lift", "monte-charge"] },
+  { categorie: "Jardinage", mots: ["jardinage", "jardinier", "espaces verts", "espace vert", "nettoyage espaces verts", "taille", "tonte", "pelouse", "elagage", "élagage", "arbres"] },
   { categorie: "Impôts", mots: ["prelevement a la source", "prélèvement à la source", "impots", "impôts", "taxe fonciere", "taxe foncière", "dgfip", "tresor public", "trésor public"] },
 ];
 
