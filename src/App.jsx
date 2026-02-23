@@ -222,7 +222,7 @@ function Dashboard({ setPage, user, resident }) {
       </div>
 
       <Card style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Budget {annee}</div>
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 12 }}>Budget {annee}</div>
         <div style={{ marginBottom: 8 }}>
           <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Annuel</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{BUDGET_ANNUEL.toLocaleString("fr-FR")} €</div>
@@ -247,7 +247,7 @@ function Dashboard({ setPage, user, resident }) {
 
       <Card style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif" }}>Derniers signalements</div>
+          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif" }}>Derniers signalements</div>
           <button onClick={() => setPage("tickets")} style={{ fontSize: 12, color: COLORS.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>Voir tout →</button>
         </div>
         {tickets.slice(0, 3).map((t) => (
@@ -263,7 +263,7 @@ function Dashboard({ setPage, user, resident }) {
       </Card>
 
       <Card>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Votes à compléter</div>
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 12 }}>Votes à compléter</div>
         {votes.filter(v => v.statut === "En cours").map((v) => (
           <div key={v.id} style={{ padding: "10px 0", borderBottom: `1px solid ${COLORS.border}` }}>
             <div style={{ fontSize: 13, color: COLORS.text, fontWeight: 500, marginBottom: 6 }}>{v.question}</div>
@@ -645,7 +645,7 @@ function Charges() {
       </div>
 
       <Card style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 12 }}>
           {modeVue === "mois" ? `Budget — ${moisSelectionne}` : `Budget YTD — ${annee}`}
           {filtreCategorie !== "Tout" ? ` · ${filtreCategorie}` : ""}
         </div>
@@ -679,7 +679,7 @@ function Charges() {
       </Card>
 
       <Card style={{ marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 16 }}>
           {modeVue === "mois" ? `Dépenses — ${moisSelectionne}` : `Dépenses — ${annee}`}
           {filtreCategorie !== "Tout" ? ` · ${filtreCategorie}` : ""}
         </div>
@@ -724,7 +724,7 @@ function Charges() {
 
       {showMassUpload && (
         <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>📦 Import multiple factures</div>
+          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 12 }}>📦 Import multiple factures</div>
           {fichiersSelectionnes.length === 0 ? (
             <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "24px", borderRadius: 10, border: `2px dashed ${COLORS.accent}`, cursor: "pointer", background: COLORS.accentLight, textAlign: "center" }}>
               <span style={{ fontSize: 36 }}>📂</span>
@@ -770,7 +770,7 @@ function Charges() {
 
       {showForm && (
         <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Nouvelle dépense</div>
+          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 12 }}>Nouvelle dépense</div>
           <input value={label} onChange={e => { const v = e.target.value; setLabel(v); setCategorie(devinerCategorie(v)); }} placeholder="Libellé *" style={inputStyle} />
           <input value={montant} onChange={e => setMontant(e.target.value)} placeholder="Montant en € *" type="number" style={inputStyle} />
           <select value={categorie} onChange={e => setCategorie(e.target.value)} style={{ ...inputStyle }}>
@@ -976,7 +976,7 @@ function Tickets({ user }) {
 
       {showForm && (
         <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Nouveau signalement</div>
+          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 12 }}>Nouveau signalement</div>
           <input value={titre} onChange={e => setTitre(e.target.value)} placeholder="Titre du problème *" style={inputStyle} />
           <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (optionnel)" rows={3} style={{ ...inputStyle, resize: "none" }} />
           <select value={priorite} onChange={e => setPriorite(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }}>
@@ -1234,7 +1234,7 @@ function Fournisseurs() {
 
       {showForm && (
         <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Nouveau fournisseur</div>
+          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 12 }}>Nouveau fournisseur</div>
           <input value={nom} onChange={e => { const v = e.target.value; setNom(v); setCategorie(devinerCategorie(v)); }} placeholder="Nom *" style={inputStyle} autoFocus />
           <select value={categorie} onChange={e => setCategorie(e.target.value)} style={{ ...inputStyle }}>
             {CATEGORIES.filter(c => c !== "Tout").map(c => <option key={c}>{c}</option>)}
