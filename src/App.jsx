@@ -413,6 +413,15 @@ function devinerCategorie(label) {
   return "Autre";
 }
 
+async function syncFournisseur(label, categorie) {
+  if (!label || nomEstFichier(label)) return;
+  const nom = label.trim();
+  const { data } = await supabase.from("fournisseurs").select("id").ilike("nom", nom).limit(1);
+  if (!data || data.length === 0) {
+    await supabase.from("fournisseurs").insert({ nom, categorie: categorie || "Autre" });
+  }
+}
+
 function Charges() {
   const [depenses, setDepenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -484,6 +493,7 @@ function Charges() {
           facture_url = urlData.publicUrl;
         }
         await supabase.from("depenses").insert({ label: meta.nom, montant: Number(meta.montant) || 0, categorie: meta.categorie, date: meta.date, facture_url });
+        await syncFournisseur(meta.nom, meta.categorie);
         progress[i].statut = "✅ OK";
       } catch { progress[i].statut = "❌ Erreur"; }
       setUploadProgress([...progress]);
@@ -507,6 +517,7 @@ function Charges() {
       }
     }
     await supabase.from("depenses").insert({ label, montant: Number(montant), categorie, date, facture_url });
+    await syncFournisseur(label, categorie);
     setLabel(""); setMontant(""); setCategorie("Gaz"); setDate(new Date().toISOString().split("T")[0]); setFichier(null);
     setShowForm(false); setUploading(false); load();
   };
