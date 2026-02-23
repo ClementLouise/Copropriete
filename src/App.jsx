@@ -190,7 +190,7 @@ function Dashboard({ setPage, user, resident }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
         {[
-          { label: `YTD ${annee}`, value: `${totalAnnee.toLocaleString("fr-FR")} €`, sub: `${(totalAnnee - budgetEcoule) > 0 ? "+" : ""}${(totalAnnee - budgetEcoule).toLocaleString("fr-FR")} € vs budget YTD`, color: (totalAnnee - budgetEcoule) > 0 ? COLORS.danger : COLORS.accent, action: "charges" },
+          { label: "Depuis Janvier", value: `${totalAnnee.toLocaleString("fr-FR")} €`, sub: `${(totalAnnee - budgetEcoule) > 0 ? "+" : ""}${(totalAnnee - budgetEcoule).toLocaleString("fr-FR")} € vs budget`, color: (totalAnnee - budgetEcoule) > 0 ? COLORS.danger : COLORS.accent, action: "charges" },
           { label: "Tickets ouverts", value: ticketsOuverts, sub: "signalements actifs", color: COLORS.warning, action: "tickets" },
           { label: "Votes en cours", value: votesEnCours, sub: "en attente de vote", color: COLORS.info, action: "votes" },
           { label: "Documents", value: "📄", sub: "accéder aux docs", color: COLORS.primary, action: "documents" },
