@@ -447,7 +447,7 @@ function Charges() {
   const [moisSelectionne, setMoisSelectionne] = useState("2026-01");
   const [fichiersSelectionnes, setFichiersSelectionnes] = useState([]);
   const [metadonnees, setMetadonnees] = useState([]);
-  const [modeVue, setModeVue] = useState("mois");
+  const [modeVue, setModeVue] = useState("annee");
   const [filtreCategorie, setFiltreCategorie] = useState("Tout");
   const [depenseACompleter, setDepenseACompleter] = useState(null);
 
@@ -587,7 +587,7 @@ function Charges() {
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {["mois", "annee"].map(m => (
+        {["annee", "mois"].map(m => (
           <button key={m} onClick={() => setModeVue(m)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${modeVue === m ? COLORS.accent : COLORS.border}`, background: modeVue === m ? COLORS.accentLight : COLORS.surface, color: modeVue === m ? COLORS.accent : COLORS.textMuted, fontWeight: modeVue === m ? 700 : 400, fontSize: 13, cursor: "pointer" }}>
             {m === "mois" ? "📅 Par mois" : "📆 Depuis janvier"}
           </button>
