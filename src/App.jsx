@@ -41,11 +41,11 @@ function PieChart({ data }) {
   });
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-      <svg width={160} height={160} style={{ flexShrink: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+      <svg width={160} height={160}>
         {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="white" strokeWidth={2} />)}
       </svg>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
         {data.map((d, i) => (
           <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
@@ -195,9 +195,9 @@ function Dashboard({ setPage, user, resident }) {
     return acc;
   }, {});
   const triees = Object.entries(parCategorie).sort((a, b) => b[1] - a[1]);
-  const top4 = triees.slice(0, 4).map(([label, value]) => ({ label, value }));
-  const autresTotal = triees.slice(4).reduce((s, [, v]) => s + v, 0);
-  const pieData = autresTotal > 0 ? [...top4, { label: "Autres", value: autresTotal }] : top4;
+  const top3 = triees.slice(0, 3).map(([label, value]) => ({ label, value }));
+  const autresTotal = triees.slice(3).reduce((s, [, v]) => s + v, 0);
+  const pieData = autresTotal > 0 ? [...top3, { label: "Autres", value: autresTotal }] : top3;
 
   return (
     <div>
