@@ -182,9 +182,9 @@ function Dashboard({ setPage, user, resident }) {
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 24 }}>
         <h1 style={{ fontFamily: "'Georgia', serif", fontSize: 26, color: COLORS.primary, fontWeight: 700, lineHeight: 1.2, margin: 0 }}>{resident?.nom || user.email}</h1>
-        <p style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 4, marginBottom: 0 }}>{resident?.lot || ""} · Copropriétaire</p>
+        {resident?.lot && <span style={{ fontSize: 13, color: COLORS.textMuted, fontWeight: 600 }}>{resident.lot}</span>}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
