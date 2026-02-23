@@ -20,26 +20,41 @@ const BUDGET_MENSUEL = BUDGET_ANNUEL / 12; // 15 000 €/mois
 const MOIS_LABELS = { "01": "Jan", "02": "Fév", "03": "Mar", "04": "Avr", "05": "Mai", "06": "Jun", "07": "Jul", "08": "Aoû", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc" };
 
 // ─── Mini Bar Chart ────────────────────────────────────────────────────
-function BarChart({ data }) {
+const PIE_COLORS = ["#4CAF7D", "#3B82F6", "#F59E0B", "#E53935", "#A78BFA"];
+
+function PieChart({ data }) {
   if (!data || data.length === 0) return <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucune donnée</div>;
-  const maxVal = Math.max(...data.flatMap((d) => [d.budget, d.reel]));
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucune donnée</div>;
+
+  const r = 70, cx = 80, cy = 80;
+  let angle = -Math.PI / 2;
+  const slices = data.map((d, i) => {
+    const a = (d.value / total) * 2 * Math.PI;
+    const x1 = cx + r * Math.cos(angle);
+    const y1 = cy + r * Math.sin(angle);
+    angle += a;
+    const x2 = cx + r * Math.cos(angle);
+    const y2 = cy + r * Math.sin(angle);
+    const large = a > Math.PI ? 1 : 0;
+    return { path: `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`, color: PIE_COLORS[i % PIE_COLORS.length], ...d };
+  });
+
   return (
-    <div style={{ overflowX: "auto" }}>
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 12, minWidth: 340, height: 140, padding: "0 4px" }}>
-        {data.map((d) => (
-          <div key={d.mois} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-            <div style={{ display: "flex", gap: 3, alignItems: "flex-end", height: 110 }}>
-              <div style={{ width: 18, height: `${(d.budget / maxVal) * 100}%`, background: COLORS.border, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
-              <div style={{ width: 18, height: `${(d.reel / maxVal) * 100}%`, background: d.reel > d.budget ? COLORS.danger : COLORS.accent, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
+    <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+      <svg width={160} height={160} style={{ flexShrink: 0 }}>
+        {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="white" strokeWidth={2} />)}
+      </svg>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+        {data.map((d, i) => (
+          <div key={d.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 10, height: 10, borderRadius: "50%", background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, color: COLORS.text, fontWeight: 500 }}>{d.label}</div>
+              <div style={{ fontSize: 11, color: COLORS.textMuted }}>{Math.round((d.value / total) * 100)}% · {Math.round(d.value).toLocaleString("fr-FR")} €</div>
             </div>
-            <span style={{ fontSize: 10, color: COLORS.textMuted, fontFamily: "serif" }}>{d.mois}</span>
           </div>
         ))}
-      </div>
-      <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 12, height: 12, background: COLORS.border, borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textMuted }}>Budget</span></div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 12, height: 12, background: COLORS.accent, borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textMuted }}>Réel</span></div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 12, height: 12, background: COLORS.danger, borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textMuted }}>Dépassement</span></div>
       </div>
     </div>
   );
@@ -174,11 +189,15 @@ function Dashboard({ setPage, user, resident }) {
   const ticketsOuverts = tickets.filter(t => t.statut !== "Résolu" && t.statut !== "Resolu").length;
   const votesEnCours = votes.filter(v => v.statut === "En cours").length;
 
-  const moisChart = Array.from({ length: 6 }, (_, i) => `${annee}-${String(i + 1).padStart(2, "0")}`);
-  const chartData = moisChart.map(mois => {
-    const reel = depenses.filter(d => d.date?.startsWith(mois)).reduce((s, d) => s + Number(d.montant), 0);
-    return { mois: MOIS_LABELS[mois.split("-")[1]], budget: BUDGET_MENSUEL, reel };
-  });
+  const depensesAnnee = depenses.filter(d => d.date?.startsWith(annee));
+  const parCategorie = depensesAnnee.reduce((acc, d) => {
+    acc[d.categorie] = (acc[d.categorie] || 0) + Number(d.montant);
+    return acc;
+  }, {});
+  const triees = Object.entries(parCategorie).sort((a, b) => b[1] - a[1]);
+  const top4 = triees.slice(0, 4).map(([label, value]) => ({ label, value }));
+  const autresTotal = triees.slice(4).reduce((s, [, v]) => s + v, 0);
+  const pieData = autresTotal > 0 ? [...top4, { label: "Autres", value: autresTotal }] : top4;
 
   return (
     <div>
@@ -222,8 +241,8 @@ function Dashboard({ setPage, user, resident }) {
       </Card>
 
       <Card style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, marginBottom: 12, fontFamily: "serif" }}>Budget vs Dépenses réelles</div>
-        <BarChart data={chartData} />
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, marginBottom: 16, fontFamily: "serif" }}>Répartition YTD</div>
+        <PieChart data={pieData} />
       </Card>
 
       <Card style={{ marginBottom: 20 }}>
