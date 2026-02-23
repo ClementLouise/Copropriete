@@ -1147,17 +1147,23 @@ function Fournisseurs() {
 
   const importer = async () => {
     setImporting(true);
-    const { data: depenses } = await supabase.from("depenses").select("label");
+    const { data: depenses } = await supabase.from("depenses").select("label, categorie");
     const existants = new Set(fournisseurs.map(f => f.nom.toLowerCase()));
-    const candidats = [...new Set(
-      (depenses || [])
-        .map(d => d.label?.trim())
-        .filter(l => l && !nomEstFichier(l) && !existants.has(l.toLowerCase()))
-    )];
+    // Dédoublonner par label, garder la catégorie la plus fréquente
+    const map = {};
+    (depenses || []).forEach(d => {
+      const label = d.label?.trim();
+      if (!label || nomEstFichier(label) || existants.has(label.toLowerCase())) return;
+      if (!map[label]) map[label] = {};
+      const cat = d.categorie || "Autre";
+      map[label][cat] = (map[label][cat] || 0) + 1;
+    });
+    const candidats = Object.entries(map).map(([nom, cats]) => {
+      const categorie = Object.entries(cats).sort((a, b) => b[1] - a[1])[0][0];
+      return { nom, categorie };
+    });
     if (candidats.length > 0) {
-      await supabase.from("fournisseurs").insert(
-        candidats.map(n => ({ nom: n, categorie: devinerCategorie(n) }))
-      );
+      await supabase.from("fournisseurs").insert(candidats);
       load();
     }
     setImporting(false);
