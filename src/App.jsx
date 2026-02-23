@@ -245,36 +245,6 @@ function Dashboard({ setPage, user, resident }) {
         <PieChart data={pieData} />
       </Card>
 
-      <Card style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif" }}>Derniers signalements</div>
-          <button onClick={() => setPage("tickets")} style={{ fontSize: 12, color: COLORS.accent, background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>Voir tout →</button>
-        </div>
-        {tickets.slice(0, 3).map((t) => (
-          <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: `1px solid ${COLORS.border}` }}>
-            <div>
-              <div style={{ fontSize: 13, color: COLORS.text, fontWeight: 500 }}>{t.titre}</div>
-              <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>{t.created_at?.split("T")[0]}</div>
-            </div>
-            <Badge label={t.statut} />
-          </div>
-        ))}
-        {tickets.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun signalement</div>}
-      </Card>
-
-      <Card>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 12 }}>Votes à compléter</div>
-        {votes.filter(v => v.statut === "En cours").map((v) => (
-          <div key={v.id} style={{ padding: "10px 0", borderBottom: `1px solid ${COLORS.border}` }}>
-            <div style={{ fontSize: 13, color: COLORS.text, fontWeight: 500, marginBottom: 6 }}>{v.question}</div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 11, color: COLORS.textMuted }}>Clôture : {v.echeance}</span>
-              <button onClick={() => setPage("votes")} style={{ fontSize: 12, color: "white", background: COLORS.accent, border: "none", borderRadius: 20, padding: "4px 14px", cursor: "pointer", fontWeight: 600 }}>Voter</button>
-            </div>
-          </div>
-        ))}
-        {votes.filter(v => v.statut === "En cours").length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun vote en cours</div>}
-      </Card>
     </div>
   );
 }
