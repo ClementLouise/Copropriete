@@ -1267,6 +1267,7 @@ export default function App() {
   const [resident, setResident] = useState(null);
   const [page, setPage] = useState("dashboard");
   const [authLoading, setAuthLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1302,9 +1303,19 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: COLORS.bg, fontFamily: "'Helvetica Neue', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto" }}>
       <div style={{ background: COLORS.primary, padding: "16px 20px 14px", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 2 }}>Résidence</div>
-            <div style={{ color: "white", fontFamily: "'Georgia', serif", fontSize: 18, fontWeight: 700 }}>Residence Inkerman</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", flexDirection: "column", gap: 5 }}
+            >
+              <div style={{ width: 22, height: 2, background: "white", borderRadius: 2 }} />
+              <div style={{ width: 22, height: 2, background: "white", borderRadius: 2 }} />
+              <div style={{ width: 22, height: 2, background: "white", borderRadius: 2 }} />
+            </button>
+            <div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 2 }}>Résidence</div>
+              <div style={{ color: "white", fontFamily: "'Georgia', serif", fontSize: 18, fontWeight: 700 }}>Residence Inkerman</div>
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 34, height: 34, borderRadius: "50%", background: COLORS.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "white", fontFamily: "serif" }}>
@@ -1318,20 +1329,39 @@ export default function App() {
             </div>
           </div>
         </div>
+
+        {menuOpen && (
+          <>
+            <div
+              onClick={() => setMenuOpen(false)}
+              style={{ position: "fixed", inset: 0, zIndex: 150 }}
+            />
+            <div style={{ position: "absolute", top: "100%", left: 0, background: COLORS.surface, borderRadius: "0 0 16px 0", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", zIndex: 200, minWidth: 220, overflow: "hidden" }}>
+              {NAV.map((n, i) => (
+                <button
+                  key={n.id}
+                  onClick={() => { setPage(n.id); setMenuOpen(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14,
+                    width: "100%", padding: "14px 20px",
+                    background: page === n.id ? COLORS.accentLight : "none",
+                    border: "none",
+                    borderBottom: i < NAV.length - 1 ? `1px solid ${COLORS.border}` : "none",
+                    cursor: "pointer",
+                    color: page === n.id ? COLORS.accent : COLORS.text,
+                  }}
+                >
+                  <span style={{ fontSize: 20 }}>{n.icon}</span>
+                  <span style={{ fontSize: 15, fontWeight: page === n.id ? 700 : 400 }}>{n.label}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      <div style={{ padding: "20px 16px 120px" }}>
+      <div style={{ padding: "20px 16px 40px" }}>
         <PageComponent setPage={setPage} user={session.user} resident={resident} />
-      </div>
-
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: COLORS.surface, borderTop: `1px solid ${COLORS.border}`, display: "flex", justifyContent: "space-around", padding: "8px 0 max(8px, env(safe-area-inset-bottom))", zIndex: 100 }}>
-        {NAV.map(n => (
-          <button key={n.id} onClick={() => setPage(n.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "none", border: "none", cursor: "pointer", padding: "4px 6px", minWidth: 50 }}>
-            <div style={{ fontSize: 20, lineHeight: 1 }}>{n.icon}</div>
-            <div style={{ fontSize: 9, fontWeight: page === n.id ? 700 : 400, color: page === n.id ? COLORS.accent : COLORS.textMuted, textTransform: "uppercase" }}>{n.label}</div>
-            {page === n.id && <div style={{ width: 4, height: 4, borderRadius: "50%", background: COLORS.accent }} />}
-          </button>
-        ))}
       </div>
     </div>
   );
