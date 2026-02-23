@@ -1128,13 +1128,11 @@ function Votes({ user }) {
 function Fournisseurs() {
   const [fournisseurs, setFournisseurs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filtreCategorie, setFiltreCategorie] = useState("Tout");
-  const [showForm, setShowForm] = useState(false);
-  const [nom, setNom] = useState("");
-  const [categorie, setCategorie] = useState("Autre");
-  const [telephone, setTelephone] = useState("");
-  const [email, setEmail] = useState("");
-  const [notes, setNotes] = useState("");
+  const [selectedCat, setSelectedCat] = useState(null);
+  const [selectedF, setSelectedF] = useState(null);
+  const [editTel, setEditTel] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editNotes, setEditNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -1143,99 +1141,120 @@ function Fournisseurs() {
     return data || [];
   };
 
-  const syncDepenses = async () => {
-    const existants_data = await load();
-    const existants = new Set(existants_data.map(f => f.nom.toLowerCase()));
-    const { data: depenses } = await supabase.from("depenses").select("label, categorie");
-    const map = {};
-    (depenses || []).forEach(d => {
-      const label = d.label?.trim();
-      if (!label || nomEstFichier(label) || existants.has(label.toLowerCase())) return;
-      if (!map[label]) map[label] = {};
-      const cat = d.categorie || "Autre";
-      map[label][cat] = (map[label][cat] || 0) + 1;
-    });
-    const candidats = Object.entries(map).map(([n, cats]) => {
-      const cat = Object.entries(cats).sort((a, b) => b[1] - a[1])[0][0];
-      return { nom: n, categorie: cat };
-    });
-    if (candidats.length > 0) await supabase.from("fournisseurs").insert(candidats);
-    await load();
-    setLoading(false);
-  };
+  useEffect(() => {
+    const sync = async () => {
+      const existants_data = await load();
+      const existants = new Set(existants_data.map(f => f.nom.toLowerCase()));
+      const { data: depenses } = await supabase.from("depenses").select("label, categorie");
+      const map = {};
+      (depenses || []).forEach(d => {
+        const label = d.label?.trim();
+        if (!label || nomEstFichier(label) || existants.has(label.toLowerCase())) return;
+        if (!map[label]) map[label] = {};
+        const cat = d.categorie || "Autre";
+        map[label][cat] = (map[label][cat] || 0) + 1;
+      });
+      const candidats = Object.entries(map).map(([n, cats]) => {
+        const cat = Object.entries(cats).sort((a, b) => b[1] - a[1])[0][0];
+        return { nom: n, categorie: cat };
+      });
+      if (candidats.length > 0) await supabase.from("fournisseurs").insert(candidats);
+      await load();
+      setLoading(false);
+    };
+    sync();
+  }, []);
 
-  useEffect(() => { syncDepenses(); }, []);
-
-  const ajouter = async () => {
-    if (!nom.trim()) return;
+  const sauvegarder = async () => {
     setSaving(true);
-    await supabase.from("fournisseurs").insert({ nom: nom.trim(), categorie, telephone: telephone.trim(), email: email.trim(), notes: notes.trim() });
-    setNom(""); setCategorie("Autre"); setTelephone(""); setEmail(""); setNotes("");
-    setShowForm(false);
+    await supabase.from("fournisseurs").update({ telephone: editTel, email: editEmail, notes: editNotes }).eq("id", selectedF.id);
+    const updated = { ...selectedF, telephone: editTel, email: editEmail, notes: editNotes };
+    setSelectedF(updated);
+    setFournisseurs(prev => prev.map(f => f.id === updated.id ? updated : f));
     setSaving(false);
-    load();
   };
-
 
   if (loading) return <Spinner />;
 
-  const categories = ["Tout", ...CATEGORIES.filter(c => c !== "Tout")];
-  const filtres = [...new Set(fournisseurs.map(f => f.categorie).filter(Boolean))];
-  const filtered = fournisseurs.filter(f => filtreCategorie === "Tout" || f.categorie === filtreCategorie);
-
   const inputStyle = { width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, marginBottom: 10, boxSizing: "border-box", outline: "none" };
 
+  // ── Vue détail fournisseur ──
+  if (selectedF) {
+    return (
+      <div>
+        <button onClick={() => setSelectedF(null)} style={{ background: "none", border: "none", color: COLORS.accent, fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 16 }}>← {selectedCat}</button>
+        <Card>
+          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 20, fontFamily: "serif", marginBottom: 4 }}>{selectedF.nom}</div>
+          <Badge label={selectedF.categorie} color={COLORS.primary} />
+          <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Téléphone</div>
+              <input value={editTel} onChange={e => setEditTel(e.target.value)} placeholder="Non renseigné" style={inputStyle} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Email</div>
+              <input value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Non renseigné" type="email" style={inputStyle} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Notes</div>
+              <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notes..." rows={3} style={{ ...inputStyle, resize: "none" }} />
+            </div>
+            <button onClick={sauvegarder} disabled={saving} style={{ width: "100%", padding: 14, background: COLORS.primary, color: "white", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", opacity: saving ? 0.6 : 1 }}>
+              {saving ? "Enregistrement..." : "Enregistrer"}
+            </button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // ── Vue liste fournisseurs d'une catégorie ──
+  if (selectedCat) {
+    const liste = fournisseurs.filter(f => f.categorie === selectedCat);
+    return (
+      <div>
+        <button onClick={() => setSelectedCat(null)} style={{ background: "none", border: "none", color: COLORS.accent, fontSize: 14, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 16 }}>← Catégories</button>
+        <SectionTitle title={selectedCat} />
+        <Card>
+          {liste.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun fournisseur</div>}
+          {liste.map(f => (
+            <div key={f.id} onClick={() => { setSelectedF(f); setEditTel(f.telephone || ""); setEditEmail(f.email || ""); setEditNotes(f.notes || ""); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: `1px solid ${COLORS.border}`, cursor: "pointer" }}>
+              <div>
+                <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 600 }}>{f.nom}</div>
+                {(f.telephone || f.email) && (
+                  <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>
+                    {f.telephone && `📞 ${f.telephone}`}{f.telephone && f.email && "  "}{f.email && `✉️ ${f.email}`}
+                  </div>
+                )}
+              </div>
+              <span style={{ color: COLORS.textMuted, fontSize: 18 }}>›</span>
+            </div>
+          ))}
+        </Card>
+      </div>
+    );
+  }
+
+  // ── Vue catégories ──
+  const cats = [...new Set(fournisseurs.map(f => f.categorie).filter(Boolean))].sort();
   return (
     <div>
       <SectionTitle title="Fournisseurs" />
-
-      <div style={{ overflowX: "auto", marginBottom: 16 }}>
-        <div style={{ display: "flex", gap: 8, width: "max-content" }}>
-          {["Tout", ...filtres].map(c => (
-            <button key={c} onClick={() => setFiltreCategorie(c)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${filtreCategorie === c ? COLORS.accent : COLORS.border}`, background: filtreCategorie === c ? COLORS.accentLight : COLORS.surface, color: filtreCategorie === c ? COLORS.accent : COLORS.textMuted, fontWeight: filtreCategorie === c ? 700 : 400, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap" }}>
-              {c}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <Card style={{ marginBottom: 16 }}>
-        {filtered.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun fournisseur</div>}
-        {filtered.map(f => (
-          <div key={f.id} style={{ padding: "14px 0", borderBottom: `1px solid ${COLORS.border}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-              <div style={{ fontSize: 14, color: COLORS.text, fontWeight: 600 }}>{f.nom}</div>
-              {f.categorie && <Badge label={f.categorie} color={COLORS.primary} />}
+      <Card>
+        {cats.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun fournisseur</div>}
+        {cats.map(cat => {
+          const count = fournisseurs.filter(f => f.categorie === cat).length;
+          return (
+            <div key={cat} onClick={() => setSelectedCat(cat)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: `1px solid ${COLORS.border}`, cursor: "pointer" }}>
+              <div>
+                <div style={{ fontSize: 15, color: COLORS.text, fontWeight: 600 }}>{cat}</div>
+                <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>{count} fournisseur{count > 1 ? "s" : ""}</div>
+              </div>
+              <span style={{ color: COLORS.textMuted, fontSize: 18 }}>›</span>
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: COLORS.textMuted }}>
-              {f.telephone && <span>📞 {f.telephone}</span>}
-              {f.email && <span>✉️ {f.email}</span>}
-            </div>
-            {f.notes && <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 6, fontStyle: "italic" }}>{f.notes}</div>}
-          </div>
-        ))}
+          );
+        })}
       </Card>
-
-      {showForm && (
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 12 }}>Nouveau fournisseur</div>
-          <input value={nom} onChange={e => { const v = e.target.value; setNom(v); setCategorie(devinerCategorie(v)); }} placeholder="Nom *" style={inputStyle} autoFocus />
-          <select value={categorie} onChange={e => setCategorie(e.target.value)} style={{ ...inputStyle }}>
-            {CATEGORIES.filter(c => c !== "Tout").map(c => <option key={c}>{c}</option>)}
-          </select>
-          <input value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="Téléphone" style={inputStyle} />
-          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" type="email" style={inputStyle} />
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes" rows={3} style={{ ...inputStyle, resize: "none" }} />
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={ajouter} disabled={saving || !nom.trim()} style={{ flex: 1, padding: 12, background: COLORS.primary, color: "white", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer", opacity: saving || !nom.trim() ? 0.5 : 1 }}>{saving ? "..." : "Ajouter"}</button>
-            <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: 12, background: COLORS.bg, color: COLORS.textMuted, border: `1px solid ${COLORS.border}`, borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>Annuler</button>
-          </div>
-        </Card>
-      )}
-
-      {!showForm && (
-        <button onClick={() => setShowForm(true)} style={{ width: "100%", padding: 14, background: COLORS.primary, color: "white", border: "none", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>+ Ajouter un fournisseur</button>
-      )}
     </div>
   );
 }
