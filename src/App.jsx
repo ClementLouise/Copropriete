@@ -406,7 +406,7 @@ const REGLES_CATEGORIE = [
   { categorie: "Gardien", mots: ["gardien", "concierge", "bulletin de paie", "bulletin paie", "paie gardien", "salaire", "urssaf", "conges payes", "congés payés", "medecine du travail", "médecine du travail"] },
   { categorie: "Gaz", mots: ["gaz", "grdf", "engie gaz", "primagaz", "antargaz", "butagaz"] },
   { categorie: "Electricité", mots: ["electricite", "électricité", "electrique", "électrique", "edf", "enedis", "courant", "eclairage", "éclairage"] },
-  { categorie: "Eau", mots: ["eau potable", "veolia", "saur", "suez eau", "lyonnaise", "consommation eau", "facture eau"] },
+  { categorie: "Eau", mots: ["eau potable", "veolia", "saur", "suez eau", "lyonnaise", "consommation eau", "facture eau", "ocea", "ocea smart building"] },
   { categorie: "Compteur eau", mots: ["compteur eau", "compteur d'eau", "relevé compteur", "releve compteur", "albasini"] },
   { categorie: "Syndic", mots: ["syndic", "foncia", "nexity", "gestimmo", "loiselet", "cabinet", "honoraires syndic", "frais syndic"] },
   { categorie: "Assurance", mots: ["assurance", "axa", "mma", "allianz", "groupama", "covea", "maif", "pacifica", "prime assurance", "contrat assurance"] },
