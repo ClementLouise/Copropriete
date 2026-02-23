@@ -241,7 +241,7 @@ function Dashboard({ setPage, user, resident }) {
       </Card>
 
       <Card style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, marginBottom: 16, fontFamily: "serif" }}>Répartition</div>
+        <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 17, fontFamily: "serif", marginBottom: 16 }}>Répartition</div>
         <PieChart data={pieData} />
       </Card>
 
