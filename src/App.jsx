@@ -182,7 +182,12 @@ function Dashboard({ setPage, user, resident }) {
 
   return (
     <div>
-<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontFamily: "'Georgia', serif", fontSize: 26, color: COLORS.primary, fontWeight: 700, lineHeight: 1.2, margin: 0 }}>{resident?.nom || user.email}</h1>
+        <p style={{ fontSize: 13, color: COLORS.textMuted, marginTop: 4, marginBottom: 0 }}>{resident?.lot || ""} · Copropriétaire</p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
         {[
           { label: "Depuis Janvier", value: `${Math.round(totalAnnee).toLocaleString("fr-FR")} €`, sub: `${(totalAnnee - budgetEcoule) > 0 ? "+" : ""}${Math.round(totalAnnee - budgetEcoule).toLocaleString("fr-FR")} € vs budget`, color: (totalAnnee - budgetEcoule) > 0 ? COLORS.danger : COLORS.accent, action: "charges" },
           { label: "Tickets ouverts", value: ticketsOuverts, sub: "signalements actifs", color: COLORS.warning, action: "tickets" },
