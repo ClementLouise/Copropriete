@@ -1323,7 +1323,7 @@ export default function App() {
               disabled={NAV.findIndex(n => n.id === page) === 0}
               style={{ background: "none", border: "none", cursor: "pointer", color: "white", fontSize: 22, padding: "4px 8px", opacity: NAV.findIndex(n => n.id === page) === 0 ? 0.3 : 1 }}
             >‹</button>
-            <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>{NAV.findIndex(n => n.id === page) + 1}/{NAV.length}</span>
+            <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 600, minWidth: 70, textAlign: "center" }}>{NAV.find(n => n.id === page)?.label}</span>
             <button
               onClick={() => { const i = NAV.findIndex(n => n.id === page); if (i < NAV.length - 1) setPage(NAV[i + 1].id); }}
               disabled={NAV.findIndex(n => n.id === page) === NAV.length - 1}
