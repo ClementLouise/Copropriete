@@ -204,26 +204,20 @@ function Dashboard({ setPage, user, resident }) {
 
       <Card style={{ marginBottom: 20 }}>
         <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Budget {annee}</div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-          <div>
-            <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Annuel</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{BUDGET_ANNUEL.toLocaleString("fr-FR")} €</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Mensuel</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.accent, fontFamily: "serif" }}>{BUDGET_MENSUEL.toLocaleString("fr-FR")} €</div>
-          </div>
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Annuel</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{BUDGET_ANNUEL.toLocaleString("fr-FR")} €</div>
         </div>
         <div style={{ fontSize: 12, color: COLORS.textMuted, marginBottom: 8 }}>
           Consommé depuis janv. :{" "}
-          <strong style={{ color: totalAnnee > budgetEcoule ? COLORS.danger : COLORS.text }}>{totalAnnee.toLocaleString("fr-FR")} €</strong>
-          {" "}/ {budgetEcoule.toLocaleString("fr-FR")} € ({numMois} mois)
+          <strong style={{ color: totalAnnee > BUDGET_ANNUEL ? COLORS.danger : COLORS.text }}>{Math.round(totalAnnee).toLocaleString("fr-FR")} €</strong>
+          {" "}/ {BUDGET_ANNUEL.toLocaleString("fr-FR")} €
         </div>
         <div style={{ height: 8, borderRadius: 4, background: COLORS.border, overflow: "hidden", marginBottom: 4 }}>
-          <div style={{ height: "100%", width: `${pctBudget}%`, background: totalAnnee > budgetEcoule ? COLORS.danger : COLORS.accent, borderRadius: 4 }} />
+          <div style={{ height: "100%", width: `${Math.min(Math.round((totalAnnee / BUDGET_ANNUEL) * 100), 100)}%`, background: totalAnnee > BUDGET_ANNUEL ? COLORS.danger : COLORS.accent, borderRadius: 4 }} />
         </div>
-        <div style={{ fontSize: 11, color: totalAnnee > budgetEcoule ? COLORS.danger : COLORS.textMuted, textAlign: "right" }}>
-          {pctBudget}% du budget consommé
+        <div style={{ fontSize: 11, color: totalAnnee > BUDGET_ANNUEL ? COLORS.danger : COLORS.textMuted, textAlign: "right" }}>
+          {Math.min(Math.round((totalAnnee / BUDGET_ANNUEL) * 100), 100)}% du budget annuel consommé
         </div>
       </Card>
 
