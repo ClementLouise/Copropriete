@@ -400,7 +400,7 @@ function PopupSaisie({ depense, onSave, onClose }) {
 }
 
 // ─── CHARGES ───────────────────────────────────────────────────────────
-const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "Assurance", "Plomberie", "Menuiserie", "Deratisation", "Serrurerie", "Porte Parking", "Compteur eau", "Autre"];
+const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "Assurance", "Plomberie", "Menuiserie", "Deratisation", "Serrurerie", "Porte Parking", "Compteur eau", "Impôts", "Autre"];
 
 const REGLES_CATEGORIE = [
   { categorie: "Gardien", mots: ["gardien", "concierge", "bulletin de paie", "bulletin paie", "paie gardien", "salaire", "urssaf", "conges payes", "congés payés", "medecine du travail", "médecine du travail"] },
@@ -415,6 +415,7 @@ const REGLES_CATEGORIE = [
   { categorie: "Serrurerie", mots: ["serrurerie", "serrurier", "serrure", "verrou", "interphone", "digicode", "badge"] },
   { categorie: "Deratisation", mots: ["deratisation", "dératisation", "nuisibles", "desinsectisation", "désinsectisation", "cafards", "rats", "souris", "punaises"] },
   { categorie: "Porte Parking", mots: ["parking", "porte parking", "portail", "barriere", "barrière", "telecommande", "télécommande", "motorisation"] },
+  { categorie: "Impôts", mots: ["prelevement a la source", "prélèvement à la source", "impots", "impôts", "taxe fonciere", "taxe foncière", "dgfip", "tresor public", "trésor public"] },
 ];
 
 function devinerCategorie(label) {
