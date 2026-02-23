@@ -1317,16 +1317,18 @@ export default function App() {
               <div style={{ color: "white", fontFamily: "'Georgia', serif", fontSize: 18, fontWeight: 700 }}>Residence Inkerman</div>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: "50%", background: COLORS.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "white", fontFamily: "serif" }}>
-              {resident?.nom ? resident.nom[0].toUpperCase() : "?"}
-            </div>
-            <div>
-              <div style={{ color: "white", fontSize: 13, fontWeight: 600 }}>{resident?.nom || "Mon compte"}</div>
-              <button onClick={logout} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 11, cursor: "pointer", padding: 0 }}>
-                Déconnexion
-              </button>
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <button
+              onClick={() => { const i = NAV.findIndex(n => n.id === page); if (i > 0) setPage(NAV[i - 1].id); }}
+              disabled={NAV.findIndex(n => n.id === page) === 0}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "white", fontSize: 22, padding: "4px 8px", opacity: NAV.findIndex(n => n.id === page) === 0 ? 0.3 : 1 }}
+            >‹</button>
+            <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>{NAV.findIndex(n => n.id === page) + 1}/{NAV.length}</span>
+            <button
+              onClick={() => { const i = NAV.findIndex(n => n.id === page); if (i < NAV.length - 1) setPage(NAV[i + 1].id); }}
+              disabled={NAV.findIndex(n => n.id === page) === NAV.length - 1}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "white", fontSize: 22, padding: "4px 8px", opacity: NAV.findIndex(n => n.id === page) === NAV.length - 1 ? 0.3 : 1 }}
+            >›</button>
           </div>
         </div>
 
@@ -1346,7 +1348,7 @@ export default function App() {
                     width: "100%", padding: "14px 20px",
                     background: page === n.id ? COLORS.accentLight : "none",
                     border: "none",
-                    borderBottom: i < NAV.length - 1 ? `1px solid ${COLORS.border}` : "none",
+                    borderBottom: `1px solid ${COLORS.border}`,
                     cursor: "pointer",
                     color: page === n.id ? COLORS.accent : COLORS.text,
                   }}
@@ -1355,6 +1357,13 @@ export default function App() {
                   <span style={{ fontSize: 15, fontWeight: page === n.id ? 700 : 400 }}>{n.label}</span>
                 </button>
               ))}
+              <button
+                onClick={() => { logout(); setMenuOpen(false); }}
+                style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", padding: "14px 20px", background: "none", border: "none", cursor: "pointer", color: COLORS.danger }}
+              >
+                <span style={{ fontSize: 20 }}>🚪</span>
+                <span style={{ fontSize: 15 }}>Déconnexion</span>
+              </button>
             </div>
           </>
         )}
