@@ -400,14 +400,13 @@ function PopupSaisie({ depense, onSave, onClose }) {
 }
 
 // ─── CHARGES ───────────────────────────────────────────────────────────
-const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "Assurance", "Plomberie", "Menuiserie", "Deratisation", "Serrurerie", "Porte Parking", "Compteur eau", "Ascenseur", "Jardinage", "Impôts", "Autre"];
+const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "Assurance", "Plomberie", "Menuiserie", "Deratisation", "Serrurerie", "Porte Parking", "Ascenseur", "Jardinage", "Impôts", "Autre"];
 
 const REGLES_CATEGORIE = [
   { categorie: "Gardien", mots: ["gardien", "concierge", "bulletin de paie", "bulletin paie", "paie gardien", "salaire", "urssaf", "conges payes", "congés payés", "medecine du travail", "médecine du travail", "formation"] },
   { categorie: "Gaz", mots: ["gaz", "grdf", "engie gaz", "primagaz", "antargaz", "butagaz"] },
   { categorie: "Electricité", mots: ["electricite", "électricité", "electrique", "électrique", "edf", "enedis", "courant", "eclairage", "éclairage"] },
-  { categorie: "Eau", mots: ["eau potable", "veolia", "saur", "suez eau", "lyonnaise", "consommation eau", "facture eau", "ocea", "ocea smart building"] },
-  { categorie: "Compteur eau", mots: ["compteur eau", "compteur d'eau", "relevé compteur", "releve compteur", "albasini"] },
+  { categorie: "Eau", mots: ["eau potable", "veolia", "saur", "suez eau", "lyonnaise", "consommation eau", "facture eau", "ocea", "ocea smart building", "compteur eau", "compteur d'eau", "relevé compteur", "releve compteur", "albasini"] },
   { categorie: "Syndic", mots: ["syndic", "foncia", "nexity", "gestimmo", "loiselet", "cabinet", "honoraires syndic", "frais syndic"] },
   { categorie: "Assurance", mots: ["assurance", "axa", "mma", "allianz", "groupama", "covea", "maif", "pacifica", "prime assurance", "contrat assurance"] },
   { categorie: "Plomberie", mots: ["plomberie", "plombier", "canalisation", "fuite", "robinet", "chaudiere", "chaudière", "chauffage", "radiateur"] },
@@ -457,10 +456,13 @@ function Charges() {
     setDepenses(depenses);
     setLoading(false);
     // Reclassification automatique silencieuse
-    const aReclassifier = depenses.filter(d => d.categorie === "Autre");
+    const aReclassifier = depenses.filter(d => d.categorie === "Autre" || d.categorie === "Compteur eau");
     if (aReclassifier.length > 0) {
       const updates = aReclassifier
-        .map(d => ({ id: d.id, cat: devinerCategorie(d.label) }))
+        .map(d => {
+          const cat = devinerCategorie(d.label);
+          return { id: d.id, cat: (cat === "Autre" && d.categorie === "Compteur eau") ? "Eau" : cat };
+        })
         .filter(u => u.cat !== "Autre");
       if (updates.length > 0) {
         await Promise.all(updates.map(u => supabase.from("depenses").update({ categorie: u.cat }).eq("id", u.id)));
