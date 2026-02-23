@@ -413,6 +413,64 @@ function devinerCategorie(label) {
   return "Autre";
 }
 
+async function extraireContactsFactures(nomFournisseur) {
+  const { data: factures } = await supabase
+    .from("depenses")
+    .select("facture_url")
+    .ilike("label", nomFournisseur)
+    .not("facture_url", "is", null)
+    .limit(3);
+
+  if (!factures || factures.length === 0) return null;
+
+  for (const { facture_url } of factures) {
+    try {
+      const resp = await fetch(facture_url);
+      const blob = await resp.blob();
+      const isPdf = blob.type === "application/pdf" || facture_url.toLowerCase().includes(".pdf");
+      const base64 = await new Promise(res => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(",")[1]);
+        r.readAsDataURL(blob);
+      });
+
+      const body = {
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 200,
+        messages: [{
+          role: "user",
+          content: [
+            isPdf
+              ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } }
+              : { type: "image", source: { type: "base64", media_type: blob.type || "image/jpeg", data: base64 } },
+            { type: "text", text: 'Extrais le numéro de téléphone et l\'email de ce document. Réponds UNIQUEMENT en JSON: {"telephone": "...", "email": "..."}. Si non trouvé, mets null.' }
+          ]
+        }]
+      };
+
+      const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": import.meta.env.VITE_ANTHROPIC_KEY,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-allow-browser": "true",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      const aiData = await aiResp.json();
+      const text = aiData.content?.[0]?.text || "";
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        if (parsed.telephone || parsed.email) return parsed;
+      }
+    } catch { continue; }
+  }
+  return null;
+}
+
 async function syncFournisseur(label, categorie) {
   if (!label || nomEstFichier(label)) return;
   const nom = label.trim();
@@ -1134,6 +1192,7 @@ function Fournisseurs() {
   const [editEmail, setEditEmail] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [extracting, setExtracting] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("fournisseurs").select("*").order("nom");
@@ -1186,7 +1245,24 @@ function Fournisseurs() {
         <Card>
           <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 20, fontFamily: "serif", marginBottom: 4 }}>{selectedF.nom}</div>
           <Badge label={selectedF.categorie} color={COLORS.primary} />
-          <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+          <button
+            onClick={async () => {
+              setExtracting(true);
+              const result = await extraireContactsFactures(selectedF.nom);
+              if (result) {
+                if (result.telephone) setEditTel(result.telephone);
+                if (result.email) setEditEmail(result.email);
+              } else {
+                alert("Aucun contact trouvé dans les factures.");
+              }
+              setExtracting(false);
+            }}
+            disabled={extracting}
+            style={{ marginTop: 16, width: "100%", padding: 12, background: COLORS.accentLight, color: COLORS.accent, border: `1px solid ${COLORS.accent}`, borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: extracting ? 0.6 : 1 }}
+          >
+            {extracting ? "Analyse des factures en cours..." : "✨ Extraire depuis les factures"}
+          </button>
+          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
               <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Téléphone</div>
               <input value={editTel} onChange={e => setEditTel(e.target.value)} placeholder="Non renseigné" style={inputStyle} />
