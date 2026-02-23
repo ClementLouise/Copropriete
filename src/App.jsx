@@ -1300,7 +1300,7 @@ export default function App() {
   const PageComponent = PAGES[page] || Dashboard;
 
   return (
-    <div style={{ minHeight: "100vh", background: COLORS.bg, fontFamily: "'Helvetica Neue', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", background: COLORS.bg, fontFamily: "'Helvetica Neue', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", overflowX: "hidden" }}>
       <div style={{ background: COLORS.primary, padding: "16px 20px 14px", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
