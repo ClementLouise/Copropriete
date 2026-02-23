@@ -1206,28 +1206,32 @@ function Fournisseurs() {
 
   useEffect(() => {
     const sync = async () => {
-      const existants_data = await load();
-      const existants = new Set(existants_data.map(f => f.nom.toLowerCase()));
-      const { data: depenses } = await supabase.from("depenses").select("label, categorie");
-      const map = {};
-      (depenses || []).forEach(d => {
-        const label = d.label?.trim();
-        if (!label || nomEstFichier(label) || existants.has(label.toLowerCase())) return;
-        if (!map[label]) map[label] = {};
-        const cat = d.categorie || "Autre";
-        map[label][cat] = (map[label][cat] || 0) + 1;
-      });
-      const candidats = Object.entries(map).map(([n, cats]) => {
-        const cat = Object.entries(cats).sort((a, b) => b[1] - a[1])[0][0];
-        return { nom: n, categorie: cat };
-      });
-      if (candidats.length > 0) await supabase.from("fournisseurs").insert(candidats);
-      const tous = await load();
-      setLoading(false);
-      // Extraction auto en arrière-plan pour ceux sans contact
-      const sansContact = tous.filter(f => !f.telephone && !f.email);
-      for (const f of sansContact) {
-        extraireEtSauvegarder(f.id, f.nom);
+      try {
+        const existants_data = await load();
+        const existants = new Set(existants_data.map(f => f.nom.toLowerCase()));
+        const { data: depenses } = await supabase.from("depenses").select("label, categorie");
+        const map = {};
+        (depenses || []).forEach(d => {
+          const label = d.label?.trim();
+          if (!label || existants.has(label.toLowerCase())) return;
+          if (!map[label]) map[label] = {};
+          const cat = d.categorie || "Autre";
+          map[label][cat] = (map[label][cat] || 0) + 1;
+        });
+        const candidats = Object.entries(map).map(([n, cats]) => {
+          const cat = Object.entries(cats).sort((a, b) => b[1] - a[1])[0][0];
+          return { nom: n, categorie: cat };
+        });
+        if (candidats.length > 0) await supabase.from("fournisseurs").insert(candidats);
+        const tous = await load();
+        setLoading(false);
+        const sansContact = tous.filter(f => !f.telephone && !f.email);
+        for (const f of sansContact) {
+          extraireEtSauvegarder(f.id, f.nom);
+        }
+      } catch (e) {
+        console.error("Sync fournisseurs:", e);
+        setLoading(false);
       }
     };
     sync();
