@@ -1282,7 +1282,7 @@ export default function App() {
   const PageComponent = PAGES[page] || Dashboard;
 
   return (
-    <div style={{ minHeight: "100vh", background: COLORS.bg, fontFamily: "'Helvetica Neue', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", overflowX: "hidden" }}>
+    <div style={{ minHeight: "100vh", background: COLORS.bg, fontFamily: "'Helvetica Neue', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto" }}>
       <div style={{ background: COLORS.primary, padding: "16px 20px 14px", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -1351,7 +1351,7 @@ export default function App() {
         )}
       </div>
 
-      <div style={{ padding: "20px 16px 40px" }}>
+      <div style={{ padding: "20px 16px 40px", overflowX: "hidden" }}>
         <PageComponent setPage={setPage} user={session.user} resident={resident} />
       </div>
     </div>
