@@ -621,9 +621,9 @@ function Charges() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
         {[
-          { label: "Réel", value: `${totalReel.toLocaleString("fr-FR")} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
-          { label: "Budget", value: `${budgetPeriode.toLocaleString("fr-FR")} €`, color: COLORS.textMuted },
-          { label: "Écart", value: `${ecart > 0 ? "+" : ""}${ecart.toLocaleString("fr-FR")} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
+          { label: "Réel", value: `${Math.round(totalReel).toLocaleString("fr-FR")} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
+          { label: "Budget", value: `${Math.round(budgetPeriode).toLocaleString("fr-FR")} €`, color: COLORS.textMuted },
+          { label: "Écart", value: `${ecart > 0 ? "+" : ""}${Math.round(ecart).toLocaleString("fr-FR")} €`, color: ecart > 0 ? COLORS.danger : COLORS.accent },
         ].map((k) => (
           <Card key={k.label} style={{ textAlign: "center", padding: 14 }}>
             <div style={{ fontSize: 10, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{k.label}</div>
@@ -640,11 +640,11 @@ function Charges() {
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Réel</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: totalReel > budgetPeriode ? COLORS.danger : COLORS.accent, fontFamily: "serif" }}>{totalReel.toLocaleString("fr-FR")} €</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: totalReel > budgetPeriode ? COLORS.danger : COLORS.accent, fontFamily: "serif" }}>{Math.round(totalReel).toLocaleString("fr-FR")} €</div>
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>{modeVue === "mois" ? "Budget mensuel" : `Budget ${moisEcoules} mois`}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{budgetPeriode.toLocaleString("fr-FR")} €</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{Math.round(budgetPeriode).toLocaleString("fr-FR")} €</div>
           </div>
         </div>
         {(() => {
@@ -657,7 +657,7 @@ function Charges() {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
                 <span style={{ color: depasse ? COLORS.danger : COLORS.textMuted }}>
-                  {depasse ? `+${(totalReel - budgetPeriode).toLocaleString("fr-FR")} € au-dessus` : `${(budgetPeriode - totalReel).toLocaleString("fr-FR")} € restants`}
+                  {depasse ? `+${Math.round(totalReel - budgetPeriode).toLocaleString("fr-FR")} € au-dessus` : `${Math.round(budgetPeriode - totalReel).toLocaleString("fr-FR")} € restants`}
                 </span>
                 <span style={{ color: depasse ? COLORS.danger : COLORS.textMuted, fontWeight: 700 }}>{pct}%</span>
               </div>
@@ -700,7 +700,7 @@ function Charges() {
                 {montantManquant ? (
                   <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.warning }}>— €</div>
                 ) : (
-                  <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{Number(d.montant).toLocaleString("fr-FR")} €</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.primary, fontFamily: "serif" }}>{Math.round(Number(d.montant)).toLocaleString("fr-FR")} €</div>
                 )}
                 {(aCompleter || d.facture_url) && <span style={{ fontSize: 16, color: COLORS.textMuted }}>›</span>}
               </div>
