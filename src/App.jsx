@@ -280,7 +280,11 @@ function PopupSaisie({ depense, onSave, onClose }) {
   const labelManquant = nomEstFichier(depense.label);
   const [montant, setMontant] = useState(depense.montant > 0 ? String(depense.montant) : "");
   const [label, setLabel] = useState(labelManquant ? "" : depense.label);
+  const [categorie, setCategorie] = useState(depense.categorie || "Autre");
   const [saving, setSaving] = useState(false);
+
+  const categorieDevinee = devinerCategorie(label);
+  const categorieAutoDisponible = label.trim() && categorieDevinee !== "Autre" && categorieDevinee !== categorie;
 
   const montantVal = parseFloat(montant.replace(",", "."));
   const peutSauver = (montantVal > 0) || (labelManquant && label.trim().length > 0);
@@ -291,6 +295,7 @@ function PopupSaisie({ depense, onSave, onClose }) {
     const updates = {};
     if (montantVal > 0) updates.montant = montantVal;
     if (labelManquant && label.trim()) updates.label = label.trim();
+    if (categorie !== depense.categorie) updates.categorie = categorie;
     await supabase.from("depenses").update(updates).eq("id", depense.id);
     setSaving(false);
     onSave();
@@ -338,13 +343,33 @@ function PopupSaisie({ depense, onSave, onClose }) {
             <div style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 6, fontWeight: 600 }}>Nom du fournisseur :</div>
             <input
               value={label}
-              onChange={e => setLabel(e.target.value)}
+              onChange={e => { const v = e.target.value; setLabel(v); const cat = devinerCategorie(v); if (cat !== "Autre") setCategorie(cat); }}
               placeholder="Ex : EDF, Albasini, URSSAF…"
               autoFocus
               style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: `2px solid ${COLORS.warning}`, fontSize: 15, fontWeight: 600, outline: "none", boxSizing: "border-box" }}
             />
           </div>
         )}
+
+        {/* Catégorie */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 6, fontWeight: 600 }}>Catégorie :</div>
+          {categorieAutoDisponible && (
+            <button
+              onClick={() => setCategorie(categorieDevinee)}
+              style={{ display: "block", width: "100%", marginBottom: 8, padding: "8px 12px", background: COLORS.accentLight, border: `1px solid ${COLORS.accent}`, borderRadius: 10, fontSize: 13, color: COLORS.accent, fontWeight: 700, cursor: "pointer", textAlign: "left" }}
+            >
+              ✨ Utiliser "{categorieDevinee}" (détecté automatiquement)
+            </button>
+          )}
+          <select
+            value={categorie}
+            onChange={e => setCategorie(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${COLORS.border}`, fontSize: 14, outline: "none" }}
+          >
+            {CATEGORIES.filter(c => c !== "Tout").map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
 
         {/* Champ montant */}
         <div style={{ fontSize: 13, color: COLORS.textMuted, marginBottom: 8, fontWeight: 600 }}>
@@ -377,6 +402,33 @@ function PopupSaisie({ depense, onSave, onClose }) {
 // ─── CHARGES ───────────────────────────────────────────────────────────
 const CATEGORIES = ["Tout", "Gaz", "Electricité", "Eau", "Gardien", "Syndic", "Assurance", "Plomberie", "Menuiserie", "Deratisation", "Serrurerie", "Porte Parking", "Compteur eau", "Autre"];
 
+const REGLES_CATEGORIE = [
+  { categorie: "Gardien", mots: ["gardien", "concierge", "bulletin de paie", "bulletin paie", "paie gardien", "salaire", "urssaf", "conges payes", "congés payés", "medecine du travail", "médecine du travail"] },
+  { categorie: "Gaz", mots: ["gaz", "grdf", "engie gaz", "primagaz", "antargaz", "butagaz"] },
+  { categorie: "Electricité", mots: ["electricite", "électricité", "electrique", "électrique", "edf", "enedis", "courant", "eclairage", "éclairage"] },
+  { categorie: "Eau", mots: ["eau potable", "veolia", "saur", "suez eau", "lyonnaise", "consommation eau", "facture eau"] },
+  { categorie: "Compteur eau", mots: ["compteur eau", "compteur d'eau", "relevé compteur", "releve compteur", "albasini"] },
+  { categorie: "Syndic", mots: ["syndic", "foncia", "nexity", "gestimmo", "loiselet", "cabinet", "honoraires syndic", "frais syndic"] },
+  { categorie: "Assurance", mots: ["assurance", "axa", "mma", "allianz", "groupama", "covea", "maif", "pacifica", "prime assurance", "contrat assurance"] },
+  { categorie: "Plomberie", mots: ["plomberie", "plombier", "canalisation", "fuite", "robinet", "chaudiere", "chaudière", "chauffage", "radiateur"] },
+  { categorie: "Menuiserie", mots: ["menuiserie", "menuisier", "porte", "fenetre", "fenêtre", "vitrage", "vitre", "volet"] },
+  { categorie: "Serrurerie", mots: ["serrurerie", "serrurier", "serrure", "verrou", "interphone", "digicode", "badge"] },
+  { categorie: "Deratisation", mots: ["deratisation", "dératisation", "nuisibles", "desinsectisation", "désinsectisation", "cafards", "rats", "souris", "punaises"] },
+  { categorie: "Porte Parking", mots: ["parking", "porte parking", "portail", "barriere", "barrière", "telecommande", "télécommande", "motorisation"] },
+];
+
+function devinerCategorie(label) {
+  if (!label) return "Autre";
+  const norm = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  for (const { categorie, mots } of REGLES_CATEGORIE) {
+    for (const mot of mots) {
+      const motNorm = mot.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (norm.includes(motNorm)) return categorie;
+    }
+  }
+  return "Autre";
+}
+
 function Charges() {
   const [depenses, setDepenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -407,12 +459,10 @@ function Charges() {
   const selectionnerFichiers = (e) => {
     const files = Array.from(e.target.files);
     setFichiersSelectionnes(files);
-    setMetadonnees(files.map(f => ({
-      nom: f.name.replace(/\.[^/.]+$/, ""),
-      montant: "",
-      categorie: "Gaz",
-      date: new Date().toISOString().split("T")[0],
-    })));
+    setMetadonnees(files.map(f => {
+      const nom = f.name.replace(/\.[^/.]+$/, "");
+      return { nom, montant: "", categorie: devinerCategorie(nom), date: new Date().toISOString().split("T")[0] };
+    }));
   };
 
   const massUpload = async () => {
@@ -691,7 +741,7 @@ function Charges() {
       {showForm && (
         <Card style={{ marginBottom: 16 }}>
           <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 14, fontFamily: "serif", marginBottom: 12 }}>Nouvelle dépense</div>
-          <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Libellé *" style={inputStyle} />
+          <input value={label} onChange={e => { const v = e.target.value; setLabel(v); setCategorie(devinerCategorie(v)); }} placeholder="Libellé *" style={inputStyle} />
           <input value={montant} onChange={e => setMontant(e.target.value)} placeholder="Montant en € *" type="number" style={inputStyle} />
           <select value={categorie} onChange={e => setCategorie(e.target.value)} style={{ ...inputStyle }}>
             {CATEGORIES.filter(c => c !== "Tout").map(c => <option key={c}>{c}</option>)}
