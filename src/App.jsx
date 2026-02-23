@@ -1439,10 +1439,7 @@ export default function App() {
               <div style={{ width: 22, height: 2, background: "white", borderRadius: 2 }} />
               <div style={{ width: 22, height: 2, background: "white", borderRadius: 2 }} />
             </button>
-            <div style={{ color: "white", fontFamily: "'Georgia', serif", fontSize: 18, fontWeight: 700, lineHeight: 1.2 }}>
-              <div>Residence</div>
-              <div>Inkerman</div>
-            </div>
+            <div style={{ color: "white", fontFamily: "'Georgia', serif", fontSize: 18, fontWeight: 700, whiteSpace: "nowrap" }}>Residence Inkerman</div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <button
