@@ -1366,7 +1366,7 @@ function Fournisseurs() {
             <Card key={cat} onClick={() => setSelectedCat(cat)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontSize: 18, fontFamily: "'Georgia', serif", fontWeight: 700, color: COLORS.primary, lineHeight: 1.2, flex: 1 }}>{cat}</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.primary, lineHeight: 1, marginLeft: 8, width: 34, height: 34, borderRadius: "50%", border: `1.5px solid ${COLORS.primary}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{count}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.primary, lineHeight: 1, marginLeft: 8, width: 26, height: 26, borderRadius: "50%", border: `1.5px solid ${COLORS.primary}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{count}</div>
               </div>
             </Card>
           );
