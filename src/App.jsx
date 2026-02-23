@@ -27,7 +27,7 @@ function PieChart({ data }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) return <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucune donnée</div>;
 
-  const r = 70, cx = 80, cy = 80;
+  const r = 55, cx = 60, cy = 60;
   let angle = -Math.PI / 2;
   const slices = data.map((d, i) => {
     const a = (d.value / total) * 2 * Math.PI;
@@ -42,7 +42,7 @@ function PieChart({ data }) {
 
   return (
     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 20 }}>
-      <svg width={130} height={130} style={{ flexShrink: 0 }}>
+      <svg width={120} height={120} style={{ flexShrink: 0 }}>
         {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="white" strokeWidth={2} />)}
       </svg>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
