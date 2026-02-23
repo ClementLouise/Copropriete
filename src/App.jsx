@@ -439,48 +439,69 @@ function extraireAvecRegex(texte) {
   };
 }
 
-async function extraireContactsFactures(nomFournisseur) {
-  const { data: factures } = await supabase
-    .from("depenses")
-    .select("facture_url")
-    .ilike("label", nomFournisseur)
-    .not("facture_url", "is", null)
-    .limit(3);
-
-  if (!factures || factures.length === 0) return null;
-
-  for (const { facture_url } of factures) {
-    try {
-      const isPdf = facture_url.toLowerCase().includes(".pdf");
-      if (!isPdf) continue; // images scannées : on laisse vide
-      const texte = await extraireTextePdf(facture_url);
-      if (!texte.trim()) continue;
-      const result = extraireAvecRegex(texte);
-      if (result.telephone || result.email) return result;
-    } catch { continue; }
-  }
-  return null;
+async function extraireEtSauvegarderUrl(fournisseurId, url) {
+  try {
+    if (!url || !url.toLowerCase().includes(".pdf")) return;
+    const texte = await extraireTextePdf(url);
+    if (!texte.trim()) return;
+    const result = extraireAvecRegex(texte);
+    if (result.telephone || result.email) {
+      const updates = {};
+      if (result.telephone) updates.telephone = result.telephone;
+      if (result.email) updates.email = result.email;
+      await supabase.from("fournisseurs").update(updates).eq("id", fournisseurId);
+    }
+  } catch {}
 }
 
-async function extraireEtSauvegarder(fournisseurId, nomFournisseur) {
-  const result = await extraireContactsFactures(nomFournisseur);
-  if (result && (result.telephone || result.email)) {
-    const updates = {};
-    if (result.telephone) updates.telephone = result.telephone;
-    if (result.email) updates.email = result.email;
-    await supabase.from("fournisseurs").update(updates).eq("id", fournisseurId);
-  }
+async function scanStorageEtExtraireContacts(fournisseurs) {
+  if (!fournisseurs || fournisseurs.length === 0) return;
+  try {
+    const { data: files } = await supabase.storage.from("factures").list("", { limit: 200 });
+    if (!files) return;
+    const pdfs = files.filter(f => f.name.toLowerCase().endsWith(".pdf"));
+    if (pdfs.length === 0) return;
+
+    // Extraire le texte de chaque PDF une seule fois
+    const pdfsTextes = [];
+    for (const fichier of pdfs) {
+      try {
+        const { data: urlData } = supabase.storage.from("factures").getPublicUrl(fichier.name);
+        const texte = await extraireTextePdf(urlData.publicUrl);
+        if (texte && texte.trim()) pdfsTextes.push(texte);
+      } catch {}
+    }
+
+    // Pour chaque fournisseur, chercher son nom dans les textes
+    for (const fournisseur of fournisseurs) {
+      const mots = fournisseur.nom.toLowerCase().split(/\s+/).filter(m => m.length >= 3);
+      if (mots.length === 0) continue;
+      for (const texte of pdfsTextes) {
+        const tl = texte.toLowerCase();
+        const match = mots.length === 1 ? tl.includes(mots[0]) : mots.every(m => tl.includes(m));
+        if (!match) continue;
+        const result = extraireAvecRegex(texte);
+        if (result.telephone || result.email) {
+          const updates = {};
+          if (result.telephone) updates.telephone = result.telephone;
+          if (result.email) updates.email = result.email;
+          await supabase.from("fournisseurs").update(updates).eq("id", fournisseur.id);
+          break;
+        }
+      }
+    }
+  } catch {}
 }
 
-async function syncFournisseur(label, categorie) {
+async function syncFournisseur(label, categorie, facture_url = null) {
   if (!label || nomEstFichier(label)) return;
   const nom = label.trim();
   const { data } = await supabase.from("fournisseurs").select("id, telephone, email").ilike("nom", nom).limit(1);
   if (!data || data.length === 0) {
     const { data: inserted } = await supabase.from("fournisseurs").insert({ nom, categorie: categorie || "Autre" }).select().single();
-    if (inserted) extraireEtSauvegarder(inserted.id, nom);
-  } else if (!data[0].telephone && !data[0].email) {
-    extraireEtSauvegarder(data[0].id, nom);
+    if (inserted && facture_url) extraireEtSauvegarderUrl(inserted.id, facture_url);
+  } else if (!data[0].telephone && !data[0].email && facture_url) {
+    extraireEtSauvegarderUrl(data[0].id, facture_url);
   }
 }
 
@@ -555,7 +576,7 @@ function Charges() {
           facture_url = urlData.publicUrl;
         }
         await supabase.from("depenses").insert({ label: meta.nom, montant: Number(meta.montant) || 0, categorie: meta.categorie, date: meta.date, facture_url });
-        await syncFournisseur(meta.nom, meta.categorie);
+        await syncFournisseur(meta.nom, meta.categorie, facture_url);
         progress[i].statut = "✅ OK";
       } catch { progress[i].statut = "❌ Erreur"; }
       setUploadProgress([...progress]);
@@ -579,7 +600,7 @@ function Charges() {
       }
     }
     await supabase.from("depenses").insert({ label, montant: Number(montant), categorie, date, facture_url });
-    await syncFournisseur(label, categorie);
+    await syncFournisseur(label, categorie, facture_url);
     setLabel(""); setMontant(""); setCategorie("Gaz"); setDate(new Date().toISOString().split("T")[0]); setFichier(null);
     setShowForm(false); setUploading(false); load();
   };
@@ -1226,9 +1247,7 @@ function Fournisseurs() {
         const tous = await load();
         setLoading(false);
         const sansContact = tous.filter(f => !f.telephone && !f.email);
-        for (const f of sansContact) {
-          extraireEtSauvegarder(f.id, f.nom);
-        }
+        scanStorageEtExtraireContacts(sansContact);
       } catch (e) {
         console.error("Sync fournisseurs:", e);
         setLoading(false);
