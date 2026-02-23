@@ -1218,12 +1218,27 @@ function Fournisseurs() {
   const [editNotes, setEditNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [derniereFactureUrl, setDerniereFactureUrl] = useState(null);
 
   const load = async () => {
     const { data } = await supabase.from("fournisseurs").select("*").order("nom");
     setFournisseurs(data || []);
     return data || [];
   };
+
+  useEffect(() => {
+    if (!selectedF || selectedF.telephone || selectedF.email) {
+      setDerniereFactureUrl(null);
+      return;
+    }
+    supabase.from("depenses")
+      .select("facture_url")
+      .ilike("label", selectedF.nom)
+      .not("facture_url", "is", null)
+      .order("date", { ascending: false })
+      .limit(1)
+      .then(({ data }) => setDerniereFactureUrl(data?.[0]?.facture_url || null));
+  }, [selectedF]);
 
   useEffect(() => {
     const sync = async () => {
@@ -1277,6 +1292,11 @@ function Fournisseurs() {
         <Card>
           <div style={{ fontWeight: 700, color: COLORS.primary, fontSize: 20, fontFamily: "serif", marginBottom: 4 }}>{selectedF.nom}</div>
           <Badge label={selectedF.categorie} color={COLORS.primary} />
+          {!selectedF.telephone && !selectedF.email && derniereFactureUrl && (
+            <a href={derniereFactureUrl} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, fontSize: 13, color: COLORS.accent, fontWeight: 600, textDecoration: "none" }}>
+              ↗ Voir la dernière facture
+            </a>
+          )}
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
               <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Téléphone</div>
