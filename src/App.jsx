@@ -1303,13 +1303,13 @@ export default function App() {
             <button
               onClick={() => { const i = NAV.findIndex(n => n.id === page); if (i > 0) setPage(NAV[i - 1].id); }}
               disabled={NAV.findIndex(n => n.id === page) === 0}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "white", fontSize: 22, padding: "4px 8px", opacity: NAV.findIndex(n => n.id === page) === 0 ? 0.3 : 1, lineHeight: 1, display: "flex", alignItems: "center" }}
+              style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 8, cursor: "pointer", color: "white", fontSize: 30, padding: "2px 10px", opacity: NAV.findIndex(n => n.id === page) === 0 ? 0.3 : 1, lineHeight: 1, display: "flex", alignItems: "center" }}
             >‹</button>
             <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: 600, minWidth: 70, textAlign: "center" }}>{NAV.find(n => n.id === page)?.label}</span>
             <button
               onClick={() => { const i = NAV.findIndex(n => n.id === page); if (i < NAV.length - 1) setPage(NAV[i + 1].id); }}
               disabled={NAV.findIndex(n => n.id === page) === NAV.length - 1}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "white", fontSize: 22, padding: "4px 8px", opacity: NAV.findIndex(n => n.id === page) === NAV.length - 1 ? 0.3 : 1, lineHeight: 1, display: "flex", alignItems: "center" }}
+              style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 8, cursor: "pointer", color: "white", fontSize: 30, padding: "2px 10px", opacity: NAV.findIndex(n => n.id === page) === NAV.length - 1 ? 0.3 : 1, lineHeight: 1, display: "flex", alignItems: "center" }}
             >›</button>
           </div>
         </div>
