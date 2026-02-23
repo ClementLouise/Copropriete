@@ -1364,21 +1364,19 @@ function Fournisseurs() {
   return (
     <div>
       <SectionTitle title="Fournisseurs" />
-      <Card>
-        {cats.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun fournisseur</div>}
+      {cats.length === 0 && <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun fournisseur</div>}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {cats.map(cat => {
           const count = fournisseurs.filter(f => f.categorie === cat).length;
           return (
-            <div key={cat} onClick={() => setSelectedCat(cat)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: `1px solid ${COLORS.border}`, cursor: "pointer" }}>
-              <div>
-                <div style={{ fontSize: 15, color: COLORS.text, fontWeight: 600 }}>{cat}</div>
-                <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 2 }}>{count} fournisseur{count > 1 ? "s" : ""}</div>
-              </div>
-              <span style={{ color: COLORS.textMuted, fontSize: 18 }}>›</span>
-            </div>
+            <Card key={cat} onClick={() => setSelectedCat(cat)}>
+              <div style={{ fontSize: 11, color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Catégorie</div>
+              <div style={{ fontSize: 18, fontFamily: "'Georgia', serif", fontWeight: 700, color: COLORS.primary, lineHeight: 1.2, marginBottom: 6 }}>{cat}</div>
+              <div style={{ fontSize: 11, color: COLORS.textMuted }}>{count} fournisseur{count > 1 ? "s" : ""}</div>
+            </Card>
           );
         })}
-      </Card>
+      </div>
     </div>
   );
 }
