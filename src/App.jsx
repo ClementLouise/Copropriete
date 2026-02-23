@@ -511,9 +511,25 @@ function Charges() {
     setShowForm(false); setUploading(false); load();
   };
 
+  const reclassifierAutre = async () => {
+    const aReclassifier = depenses.filter(d => d.categorie === "Autre");
+    if (aReclassifier.length === 0) { alert("Aucune dépense en catégorie \"Autre\"."); return; }
+    let count = 0;
+    for (const d of aReclassifier) {
+      const nouvelleCat = devinerCategorie(d.label);
+      if (nouvelleCat !== "Autre") {
+        await supabase.from("depenses").update({ categorie: nouvelleCat }).eq("id", d.id);
+        count++;
+      }
+    }
+    await load();
+    alert(count > 0 ? `✅ ${count} dépense(s) reclassifiée(s).` : "Aucune dépense n'a pu être reclassifiée automatiquement.");
+  };
+
   if (loading) return <Spinner />;
 
   const aCompleterCount = depenses.filter(d => (!d.montant || Number(d.montant) === 0) || nomEstFichier(d.label)).length;
+  const autreCount = depenses.filter(d => d.categorie === "Autre").length;
   const annee = moisSelectionne.split("-")[0];
   const aujourd_hui = new Date().toISOString().split("T")[0];
   const depensesFiltrees = depenses.filter(d => {
@@ -562,6 +578,20 @@ function Charges() {
             <div style={{ fontSize: 12, color: COLORS.textMuted }}>Toucher pour saisir les informations manquantes</div>
           </div>
           <span style={{ color: COLORS.warning, fontSize: 18 }}>›</span>
+        </div>
+      )}
+
+      {autreCount > 0 && (
+        <div
+          onClick={reclassifierAutre}
+          style={{ background: "#f0f9ff", border: `1px solid ${COLORS.info}`, borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+        >
+          <span style={{ fontSize: 20 }}>✨</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.info }}>{autreCount} dépense{autreCount > 1 ? "s" : ""} en catégorie "Autre"</div>
+            <div style={{ fontSize: 12, color: COLORS.textMuted }}>Toucher pour reclassifier automatiquement</div>
+          </div>
+          <span style={{ color: COLORS.info, fontSize: 18 }}>›</span>
         </div>
       )}
 
